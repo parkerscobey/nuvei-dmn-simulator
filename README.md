@@ -19,15 +19,16 @@ This tool must be safe by default:
 
 ## 📊 Status
 
-This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, **Phase 3 config/secret handling**, **Phase 4 credential verification**, and **Phase 5 target safety**.
+This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, **Phase 3 config/secret handling**, **Phase 4 credential verification**, **Phase 5 target safety**, and **Phase 6 CLI preview/send**.
 
-## 📋 Planned Usage
+## 📋 Usage
 
 ```sh
 nuvei-dmn-simulator config set-merchant local-demo
 nuvei-dmn-simulator config set-target local
 nuvei-dmn-simulator config list
 nuvei-dmn-simulator config verify local-demo
+nuvei-dmn-simulator preview payment pix --profile local-demo --status APPROVED --target local
 nuvei-dmn-simulator send payment pix --profile local-demo --status APPROVED --target local
 ```
 
@@ -37,77 +38,95 @@ Config is stored outside the repository by default at your OS user config path, 
 
 See `examples/config.example.toml` for a placeholder-only example.
 
-## Quick Start: Config Smoke Test
+## Quick Start
 
-Run these steps from the repository root to exercise the Phase 3 config commands without touching your real user config.
+Use a temporary config so you can test without touching your real user config.
 
-1. Create a temporary config path:
+1. Create temp config path:
 
 ```sh
 mkdir -p /tmp/nuvei-dmn-e2e
 export NUVEI_DMN_CONFIG=/tmp/nuvei-dmn-e2e/config.toml
 ```
 
-2. Add a merchant profile:
+2. Add placeholder merchant + local target:
 
 ```sh
 go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-merchant local-demo
-```
-
-Use placeholder values when prompted:
-
-```text
-Nuvei environment (test/prod): test
-Merchant ID: merchant-id-placeholder
-Merchant Site ID: merchant-site-id-placeholder
-Merchant Secret Key: merchant-secret-key-placeholder
-```
-
-When run in a terminal, the merchant secret input is hidden while you type.
-
-3. Add a local target profile:
-
-```sh
 go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-target local
-```
-
-Use these values when prompted:
-
-```text
-Target URL: http://localhost:3000/nuvei_direct_merchant_notifications
-Target kind (local/staging/sandbox/demo/trusted/production-hosted-sandbox): local
-Requires confirmation before send (true/false): false
-```
-
-4. Confirm secrets are redacted in command output:
-
-```sh
 go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" list
 ```
 
-Expected output includes:
+Expected: `merchant_secret_key = "********"` is shown, not the raw secret.
 
-```toml
-merchant_secret_key = "********"
+3. Preview payload (network-free):
+
+```sh
+go run ./cmd/nuvei-dmn-simulator preview payment pix \
+  --config "$NUVEI_DMN_CONFIG" \
+  --profile local-demo \
+  --target local \
+  --status APPROVED
 ```
 
-It should not print `merchant-secret-key-placeholder`.
+Expected: target summary + payload field table + raw URL-encoded payload; no Nuvei call and no target POST.
 
-5. Clean up the temporary config when finished:
+4. Strict correlation mode (required matching fields):
+
+```sh
+go run ./cmd/nuvei-dmn-simulator preview payment pix \
+  --config "$NUVEI_DMN_CONFIG" \
+  --profile local-demo \
+  --target local \
+  --require-correlation-fields \
+  --status APPROVED \
+  --total-amount 42.10 \
+  --currency BRL \
+  --client-request-id req-123 \
+  --client-unique-id uniq-123 \
+  --user-payment-option-id upo-123
+```
+
+Strict mode fails fast unless all required fields are explicitly passed.
+
+5. Target safety check (no real creds required):
+
+```sh
+go run ./cmd/nuvei-dmn-simulator send payment pix \
+  --config "$NUVEI_DMN_CONFIG" \
+  --profile local-demo \
+  --status APPROVED \
+  --target https://example.com/nuvei_direct_merchant_notifications
+```
+
+Expected: blocked as untrusted by default.
+
+6. Full send test (real Nuvei credentials required):
+
+- Update `local-demo` with valid Nuvei credentials.
+- Run a local webhook receiver.
+
+```sh
+go run ./cmd/nuvei-dmn-simulator send payment pix \
+  --config "$NUVEI_DMN_CONFIG" \
+  --profile local-demo \
+  --status APPROVED \
+  --target local
+```
+
+Expected: command prints receiver HTTP status and response body.
+
+7. Clean up:
 
 ```sh
 rm -rf /tmp/nuvei-dmn-e2e
 ```
 
-To use your normal user config instead, omit `--config "$NUVEI_DMN_CONFIG"`. On macOS/Linux, the default path is typically `~/.config/nuvei-dmn-simulator/config.toml`.
-
-`config verify` requires real Nuvei test or production credentials and will call Nuvei. `preview` and `send` are planned for later phases and are not expected to work yet.
-
 ## Target Safety
 
 Target safety blocks unknown public URLs by default. Local development URLs are allowed when they use `localhost`, a loopback IP, `.test`, `.local`, or `.localhost`.
 
-Public staging, sandbox, demo, or trusted testing hosts must be saved as target profiles with `config set-target <name>`. Production-hosted sandbox profiles, or any profile marked `requires_confirm = true`, require explicit confirmation before a future send operation proceeds. The future `--allow-untrusted-target` escape hatch is intended only for unknown public hosts; denied schemes and malformed URLs stay blocked.
+Public staging, sandbox, demo, or trusted testing hosts must be saved as target profiles with `config set-target <name>`. Production-hosted sandbox profiles, or any profile marked `requires_confirm = true`, require explicit confirmation before send proceeds. The `--allow-untrusted-target` escape hatch is intended only for unknown public hosts; denied schemes and malformed URLs stay blocked.
 
 ## 💻 Development
 

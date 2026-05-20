@@ -1,0 +1,343 @@
+package main
+
+import (
+	"context"
+	"fmt"
+	"sort"
+	"strings"
+	"text/tabwriter"
+	"time"
+
+	appconfig "github.com/parkerscobey/nuvei-dmn-simulator/internal/config"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/credentials"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/dmn/payment"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/dmn/payment/apm"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/sender"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/targetsafe"
+	"github.com/spf13/cobra"
+)
+
+type paymentPixFlags struct {
+	configPath               string
+	profile                  string
+	status                   string
+	target                   string
+	totalAmount              string
+	currency                 string
+	userPaymentOptionID      string
+	pppTransactionID         string
+	transactionID            string
+	clientUniqueID           string
+	clientRequestID          string
+	reason                   string
+	reasonCode               string
+	allowUntrustedTarget     bool
+	requireCorrelationFields bool
+}
+
+var verifyMerchantProfile = func(ctx context.Context, profile credentials.Profile) (credentials.Verification, error) {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return credentials.NewClient(nil).Verify(ctx, profile)
+}
+
+var sendDMNPayload = func(ctx context.Context, targetURL, encodedPayload string) (sender.Result, error) {
+	return sender.NewClient(nil).Send(ctx, sender.Request{TargetURL: targetURL, EncodedPayload: encodedPayload})
+}
+
+func newPreviewCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "preview",
+		Short: "Build and preview a signed DMN payload without sending",
+	}
+
+	cmd.AddCommand(newPreviewPaymentCommand())
+	return cmd
+}
+
+func newPreviewPaymentCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "payment",
+		Short: "Preview payment DMN payloads",
+	}
+	cmd.AddCommand(newPreviewPaymentPixCommand())
+	return cmd
+}
+
+func newPreviewPaymentPixCommand() *cobra.Command {
+	flags := paymentPixFlags{}
+
+	cmd := &cobra.Command{
+		Use:   "pix",
+		Short: "Preview a signed Pix payment DMN payload",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateStrictMode(cmd, flags); err != nil {
+				return err
+			}
+
+			resolved, err := resolvePaymentPixInputs(flags)
+			if err != nil {
+				return err
+			}
+
+			classification := targetsafe.Classify(resolved.targetURL, resolved.trustedProfiles, nil)
+			printTargetSummary(cmd, classification)
+			if classification.Classification == targetsafe.ClassificationUntrusted {
+				fmt.Fprintln(cmd.OutOrStdout(), "Note: this target is untrusted and send is blocked by default unless you pass --allow-untrusted-target.")
+			}
+
+			printPayloadPreview(cmd, resolved.payload)
+			return nil
+		},
+	}
+
+	bindPaymentPixFlags(cmd, &flags, false)
+	return cmd
+}
+
+func newSendCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "send",
+		Short: "Send a signed DMN payload",
+	}
+
+	cmd.AddCommand(newSendPaymentCommand())
+	return cmd
+}
+
+func newSendPaymentCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "payment",
+		Short: "Send payment DMN payloads",
+	}
+	cmd.AddCommand(newSendPaymentPixCommand())
+	return cmd
+}
+
+func newSendPaymentPixCommand() *cobra.Command {
+	flags := paymentPixFlags{}
+
+	cmd := &cobra.Command{
+		Use:   "pix",
+		Short: "Send a signed Pix payment DMN payload",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := validateStrictMode(cmd, flags); err != nil {
+				return err
+			}
+
+			resolved, err := resolvePaymentPixInputs(flags)
+			if err != nil {
+				return err
+			}
+
+			checkOpts := targetsafe.CheckOptions{
+				TrustedProfiles: resolved.trustedProfiles,
+				AllowUntrusted:  flags.allowUntrustedTarget,
+				Confirmer:       targetsafe.NewConsoleConfirmer(),
+			}
+			classification, err := targetsafe.Check(resolved.targetURL, checkOpts)
+			if err != nil {
+				return safetyError(classification, err)
+			}
+			printTargetSummary(cmd, classification)
+
+			_, err = verifyMerchantProfile(cmd.Context(), toCredentialProfile(resolved.merchantProfile))
+			if err != nil {
+				return err
+			}
+
+			result, err := sendDMNPayload(cmd.Context(), resolved.targetURL, resolved.payload.Encode())
+			if err != nil {
+				return err
+			}
+
+			fmt.Fprintf(cmd.OutOrStdout(), "HTTP status: %d\n", result.StatusCode)
+			fmt.Fprintln(cmd.OutOrStdout(), "Response body:")
+			fmt.Fprintln(cmd.OutOrStdout(), result.Body)
+			return nil
+		},
+	}
+
+	bindPaymentPixFlags(cmd, &flags, true)
+	return cmd
+}
+
+func bindPaymentPixFlags(cmd *cobra.Command, flags *paymentPixFlags, includeAllowUntrusted bool) {
+	cmd.Flags().StringVar(&flags.configPath, "config", "", "config file path (defaults to user config directory)")
+	cmd.Flags().StringVar(&flags.profile, "profile", "", "merchant profile name")
+	cmd.Flags().StringVar(&flags.status, "status", payment.StatusApproved, "payment status: PENDING, APPROVED, or DECLINED")
+	cmd.Flags().StringVar(&flags.target, "target", "", "target profile name or absolute URL")
+	cmd.Flags().StringVar(&flags.totalAmount, "total-amount", "", "override totalAmount")
+	cmd.Flags().StringVar(&flags.currency, "currency", "", "override currency")
+	cmd.Flags().StringVar(&flags.userPaymentOptionID, "user-payment-option-id", "", "override userPaymentOptionId")
+	cmd.Flags().StringVar(&flags.pppTransactionID, "ppp-transaction-id", "", "override PPP_TransactionID")
+	cmd.Flags().StringVar(&flags.transactionID, "transaction-id", "", "override TransactionID")
+	cmd.Flags().StringVar(&flags.clientUniqueID, "client-unique-id", "", "override clientUniqueId")
+	cmd.Flags().StringVar(&flags.clientRequestID, "client-request-id", "", "override clientRequestId")
+	cmd.Flags().StringVar(&flags.reason, "reason", "", "override Reason")
+	cmd.Flags().StringVar(&flags.reasonCode, "reason-code", "", "override ReasonCode")
+	cmd.Flags().BoolVar(&flags.requireCorrelationFields, "require-correlation-fields", false, "require explicit amount/currency/status and correlation IDs")
+	if includeAllowUntrusted {
+		cmd.Flags().BoolVar(&flags.allowUntrustedTarget, "allow-untrusted-target", false, "allow unknown public targets")
+	}
+
+	_ = cmd.MarkFlagRequired("profile")
+	_ = cmd.MarkFlagRequired("target")
+}
+
+type resolvedPaymentPixInputs struct {
+	merchantProfile appconfig.MerchantProfile
+	targetURL       string
+	trustedProfiles map[string]targetsafe.Profile
+	payload         payment.Payload
+}
+
+func resolvePaymentPixInputs(flags paymentPixFlags) (resolvedPaymentPixInputs, error) {
+	configPath, err := resolveConfigPath(flags.configPath)
+	if err != nil {
+		return resolvedPaymentPixInputs{}, err
+	}
+
+	cfg, err := appconfig.Load(configPath)
+	if err != nil {
+		return resolvedPaymentPixInputs{}, err
+	}
+
+	merchantProfile, ok := cfg.Merchants[flags.profile]
+	if !ok {
+		return resolvedPaymentPixInputs{}, fmt.Errorf("merchant profile %q not found", flags.profile)
+	}
+	if err := appconfig.ValidateMerchantProfile(merchantProfile); err != nil {
+		return resolvedPaymentPixInputs{}, err
+	}
+
+	targetURL, err := resolveTargetURL(cfg, flags.target)
+	if err != nil {
+		return resolvedPaymentPixInputs{}, err
+	}
+
+	payload, err := apm.Pix(payment.Options{
+		MerchantID:          merchantProfile.MerchantID,
+		MerchantSiteID:      merchantProfile.MerchantSiteID,
+		MerchantSecretKey:   merchantProfile.MerchantSecretKey,
+		Status:              strings.ToUpper(flags.status),
+		TotalAmount:         flags.totalAmount,
+		Currency:            flags.currency,
+		UserPaymentOptionID: flags.userPaymentOptionID,
+		PPPTransactionID:    flags.pppTransactionID,
+		TransactionID:       flags.transactionID,
+		ClientUniqueID:      flags.clientUniqueID,
+		ClientRequestID:     flags.clientRequestID,
+		Reason:              flags.reason,
+		ReasonCode:          flags.reasonCode,
+	})
+	if err != nil {
+		return resolvedPaymentPixInputs{}, err
+	}
+
+	return resolvedPaymentPixInputs{
+		merchantProfile: merchantProfile,
+		targetURL:       targetURL,
+		trustedProfiles: trustedTargetProfiles(cfg),
+		payload:         payload,
+	}, nil
+}
+
+func resolveTargetURL(cfg appconfig.Config, targetArg string) (string, error) {
+	if profile, ok := cfg.Targets[targetArg]; ok {
+		if err := appconfig.ValidateTargetProfile(profile); err != nil {
+			return "", err
+		}
+		return profile.URL, nil
+	}
+
+	target := appconfig.TargetProfile{URL: targetArg, Kind: "trusted"}
+	if err := appconfig.ValidateTargetProfile(target); err != nil {
+		return "", fmt.Errorf("target %q is not a configured profile and is not a valid absolute URL", targetArg)
+	}
+	return targetArg, nil
+}
+
+func trustedTargetProfiles(cfg appconfig.Config) map[string]targetsafe.Profile {
+	profiles := make(map[string]targetsafe.Profile, len(cfg.Targets))
+	for name, target := range cfg.Targets {
+		profiles[name] = targetsafe.Profile{
+			URL:             target.URL,
+			Kind:            target.Kind,
+			RequiresConfirm: target.RequiresConfirm,
+		}
+	}
+	return profiles
+}
+
+func toCredentialProfile(profile appconfig.MerchantProfile) credentials.Profile {
+	return credentials.Profile{
+		Environment:       profile.Environment,
+		MerchantID:        profile.MerchantID,
+		MerchantSiteID:    profile.MerchantSiteID,
+		MerchantSecretKey: profile.MerchantSecretKey,
+	}
+}
+
+func printTargetSummary(cmd *cobra.Command, result targetsafe.Result) {
+	fmt.Fprintf(cmd.OutOrStdout(), "Target host: %s\n", result.Host)
+	fmt.Fprintf(cmd.OutOrStdout(), "Target classification: %s\n", result.Classification)
+	fmt.Fprintf(cmd.OutOrStdout(), "Target reason: %s\n", result.Reason)
+}
+
+func printPayloadPreview(cmd *cobra.Command, payload payment.Payload) {
+	fmt.Fprintln(cmd.OutOrStdout(), "Payload fields:")
+	tw := tabwriter.NewWriter(cmd.OutOrStdout(), 0, 0, 2, ' ', 0)
+	for _, key := range orderedPayloadKeys(payload.Fields) {
+		fmt.Fprintf(tw, "%s\t%s\n", key, payload.Fields[key])
+	}
+	_ = tw.Flush()
+
+	fmt.Fprintln(cmd.OutOrStdout(), "Raw URL-encoded payload:")
+	fmt.Fprintln(cmd.OutOrStdout(), payload.Encode())
+}
+
+func orderedPayloadKeys(fields map[string]string) []string {
+	keys := make([]string, 0, len(fields))
+	for key := range fields {
+		keys = append(keys, key)
+	}
+	sort.Strings(keys)
+	return keys
+}
+
+func safetyError(result targetsafe.Result, original error) error {
+	if result.Host == "" {
+		return original
+	}
+	return fmt.Errorf("target host %q is not allowed: %s", result.Host, result.Reason)
+}
+
+func validateStrictMode(cmd *cobra.Command, flags paymentPixFlags) error {
+	if !flags.requireCorrelationFields {
+		return nil
+	}
+
+	if strings.TrimSpace(flags.totalAmount) == "" {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires --total-amount")
+	}
+	if strings.TrimSpace(flags.currency) == "" {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires --currency")
+	}
+	if strings.TrimSpace(flags.clientRequestID) == "" {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires --client-request-id")
+	}
+	if strings.TrimSpace(flags.clientUniqueID) == "" {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires --client-unique-id")
+	}
+	if strings.TrimSpace(flags.userPaymentOptionID) == "" {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires --user-payment-option-id")
+	}
+	if !cmd.Flags().Changed("status") {
+		return fmt.Errorf("strict mode (--require-correlation-fields) requires explicit --status")
+	}
+
+	return nil
+}

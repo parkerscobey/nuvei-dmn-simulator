@@ -227,6 +227,16 @@ Common non-secret flags:
 - `--reason`
 - `--reason-code`
 - `--allow-untrusted-target`
+- `--require-correlation-fields`
+
+`--require-correlation-fields` should enforce explicit correlation-focused inputs for deterministic webhook matching tests. In strict mode, require explicit values for:
+
+- `--status`
+- `--total-amount`
+- `--currency`
+- `--client-request-id`
+- `--client-unique-id`
+- `--user-payment-option-id`
 
 Secret values should not be accepted as normal flags in the primary UX. If environment-variable support is added for CI, it must be documented as automation-only.
 
