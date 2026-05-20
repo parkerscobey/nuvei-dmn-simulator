@@ -2,6 +2,7 @@ package payment
 
 import (
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 )
@@ -122,5 +123,55 @@ func assertField(t *testing.T, payload Payload, key, want string) {
 	t.Helper()
 	if got := payload.Fields[key]; got != want {
 		t.Fatalf("field %q = %q, want %q", key, got, want)
+	}
+}
+
+func TestParseEncodedParsesAndValidatesPayload(t *testing.T) {
+	t.Parallel()
+
+	raw := "merchant_id=merchant-id&merchant_site_id=site-id&totalAmount=30.00&currency=BRL&responseTimeStamp=2026-05-20.18%3A10%3A00&PPP_TransactionID=ppp-1&Status=APPROVED&productId=&payment_method=apmgw_PIX&ppp_status=OK&message=APPROVED&transactionType=Sale&type=DEPOSIT&clientRequestId=req-1&clientUniqueId=uniq-1&userPaymentOptionId=upo-1&advanceResponseChecksum=checksum"
+
+	payload, err := ParseEncoded(raw)
+	if err != nil {
+		t.Fatalf("ParseEncoded error = %v", err)
+	}
+
+	assertField(t, payload, FieldMerchantID, "merchant-id")
+	assertField(t, payload, FieldStatus, StatusApproved)
+}
+
+func TestRecomputeAdvanceResponseChecksumUpdatesChecksum(t *testing.T) {
+	t.Parallel()
+
+	payload := Payload{Fields: map[string]string{
+		FieldMerchantID:              "merchant-id",
+		FieldMerchantSiteID:          "site-id",
+		FieldTotalAmount:             "30.00",
+		FieldCurrency:                "BRL",
+		FieldResponseTimeStamp:       "2026-05-20.18:10:00",
+		FieldPPPTransactionID:        "1234567890",
+		FieldStatus:                  StatusApproved,
+		FieldProductID:               "PIX-DEMO",
+		FieldPaymentMethod:           "apmgw_PIX",
+		FieldPPPStatus:               PPPStatusOK,
+		FieldMessage:                 StatusApproved,
+		FieldTransactionType:         "Sale",
+		FieldType:                    "DEPOSIT",
+		FieldClientRequestID:         "req-1",
+		FieldClientUniqueID:          "uniq-1",
+		FieldUserPaymentOptionID:     "upo-1",
+		FieldAdvanceResponseChecksum: "old",
+	}}
+
+	recomputed, err := RecomputeAdvanceResponseChecksum(payload, "secret")
+	if err != nil {
+		t.Fatalf("RecomputeAdvanceResponseChecksum error = %v", err)
+	}
+
+	if recomputed.Fields[FieldAdvanceResponseChecksum] == "old" {
+		t.Fatal("checksum was not recomputed")
+	}
+	if !strings.EqualFold(recomputed.Fields[FieldAdvanceResponseChecksum], "d85119067f127635b8a8b4720bbc780330fff7607bfeb2defc7a73881990c2df") {
+		t.Fatalf("unexpected checksum = %q", recomputed.Fields[FieldAdvanceResponseChecksum])
 	}
 }

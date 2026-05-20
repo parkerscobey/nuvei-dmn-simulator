@@ -72,12 +72,12 @@
 
 ## Phase 8: Raw Payload Mode
 
-- [ ] Implement URL-encoded raw payload parser.
-- [ ] Implement status and field overrides.
-- [ ] Replace merchant fields from selected verified profile by default.
-- [ ] Recompute checksum after overrides.
-- [ ] Support preview and send from raw payloads.
-- [ ] Add tests with sanitized Nuvei sample payloads.
+- [x] Implement URL-encoded raw payload parser.
+- [x] Implement status and field overrides.
+- [x] Replace merchant fields from selected verified profile by default.
+- [x] Recompute checksum after overrides.
+- [x] Support preview and send from raw payloads.
+- [x] Add tests with sanitized Nuvei sample payloads.
 
 ## Phase 9: Web Server UI
 

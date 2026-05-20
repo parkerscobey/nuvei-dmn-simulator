@@ -219,6 +219,56 @@ func (p Payload) Encode() string {
 	return p.Values().Encode()
 }
 
+func ParseEncoded(raw string) (Payload, error) {
+	values, err := url.ParseQuery(strings.TrimSpace(raw))
+	if err != nil {
+		return Payload{}, fmt.Errorf("parse raw URL-encoded payload: %w", err)
+	}
+
+	fields := make(map[string]string, len(values))
+	for key, vals := range values {
+		if len(vals) == 0 {
+			fields[key] = ""
+			continue
+		}
+		fields[key] = vals[len(vals)-1]
+	}
+
+	payload := Payload{Fields: fields}
+	if err := payload.Validate(); err != nil {
+		return Payload{}, err
+	}
+
+	return payload, nil
+}
+
+func RecomputeAdvanceResponseChecksum(payload Payload, merchantSecretKey string) (Payload, error) {
+	if strings.TrimSpace(merchantSecretKey) == "" {
+		return Payload{}, errors.New("merchant secret key is required")
+	}
+
+	next := Payload{Fields: make(map[string]string, len(payload.Fields))}
+	for key, value := range payload.Fields {
+		next.Fields[key] = value
+	}
+
+	next.Fields[FieldAdvanceResponseChecksum] = checksum.PaymentAdvanceResponseChecksum(checksum.PaymentFields{
+		TotalAmount:       next.Fields[FieldTotalAmount],
+		Currency:          next.Fields[FieldCurrency],
+		ResponseTimeStamp: next.Fields[FieldResponseTimeStamp],
+		PPPTransactionID:  next.Fields[FieldPPPTransactionID],
+		Status:            next.Fields[FieldStatus],
+		ProductID:         next.Fields[FieldProductID],
+		MerchantSecretKey: merchantSecretKey,
+	})
+
+	if err := next.Validate(); err != nil {
+		return Payload{}, err
+	}
+
+	return next, nil
+}
+
 func (p Payload) Validate() error {
 	for _, key := range requiredKeys {
 		if _, ok := p.Fields[key]; !ok {

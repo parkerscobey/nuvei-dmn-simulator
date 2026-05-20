@@ -19,18 +19,6 @@ Teams integrating Nuvei DMNs often need deterministic webhook testing without wa
 - Never use `/payment` or another money-moving endpoint for credential verification.
 - Block unknown public targets by default unless explicitly overridden.
 
-## Status
-
-Implemented phases:
-
-- Phase 1: repository skeleton
-- Phase 2: payment DMN core
-- Phase 3: config and secret handling
-- Phase 4: credential verification
-- Phase 5: target safety
-- Phase 6: CLI preview/send for Pix
-- Phase 7: quality gates and local smoke
-
 ## What works today
 
 - Merchant profile configuration stored outside the repository.
@@ -39,6 +27,7 @@ Implemented phases:
 - Pix payment DMN preview with signed payload generation.
 - Pix payment DMN send flow with target safety checks.
 - Strict correlation mode via `--require-correlation-fields`.
+- Raw URL-encoded payload import with safe override + checksum recompute.
 
 ## Install
 
@@ -62,6 +51,8 @@ nuvei-dmn-simulator config set-target local
 nuvei-dmn-simulator config verify local-demo
 nuvei-dmn-simulator preview payment pix --profile local-demo --status APPROVED --target local
 nuvei-dmn-simulator send payment pix --profile local-demo --status APPROVED --target local
+nuvei-dmn-simulator preview payment from-raw --profile local-demo --file payload.txt --status APPROVED --target local
+nuvei-dmn-simulator send payment from-raw --profile local-demo --file payload.txt --status DECLINED --target local
 ```
 
 Config is stored outside the repository by default at your OS user config path, for example `~/.config/nuvei-dmn-simulator/config.toml` on macOS/Linux. `config set-merchant` prompts for the merchant secret without echoing it when run in a terminal, and `config list` always redacts stored secrets.
@@ -147,6 +138,28 @@ go run ./cmd/nuvei-dmn-simulator send payment pix \
 ```
 
 Expected: command prints receiver HTTP status and response body.
+
+## Raw payload mode
+
+Use raw mode when you want to start from an existing URL-encoded Nuvei payment DMN payload (for example, docs samples or sanitized real payloads).
+
+```sh
+go run ./cmd/nuvei-dmn-simulator preview payment from-raw \
+  --config "$NUVEI_DMN_CONFIG" \
+  --profile local-demo \
+  --file ./payload.txt \
+  --target local \
+  --status APPROVED
+```
+
+Behavior:
+
+- Parses the URL-encoded payload from `--file`.
+- Replaces `merchant_id` and `merchant_site_id` from the selected profile by default.
+- Applies optional field overrides (`--status`, amount/currency, correlation IDs, reason fields).
+- Recomputes `advanceResponseChecksum` after overrides.
+
+If you need to preserve merchant identifiers from the file, pass `--keep-raw-merchant-fields`.
 
 7. Clean up.
 

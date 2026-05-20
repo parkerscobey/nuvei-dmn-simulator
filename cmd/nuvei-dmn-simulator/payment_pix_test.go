@@ -6,6 +6,7 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"path/filepath"
 	"strings"
 	"testing"
@@ -265,12 +266,136 @@ func TestPreviewPaymentPixStrictModePassesWithRequiredFields(t *testing.T) {
 	}
 }
 
+func TestPreviewPaymentFromRawReplacesMerchantAndRecomputesChecksum(t *testing.T) {
+	t.Parallel()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{
+			"local": {
+				URL:  "http://localhost:3000/nuvei_direct_merchant_notifications",
+				Kind: "local",
+			},
+		},
+	})
+
+	rawFile := writeRawPayloadFile(t, "merchant_id=nuvei-docs-merchant&merchant_site_id=nuvei-docs-site&totalAmount=30.00&currency=BRL&responseTimeStamp=2026-05-20.18%3A10%3A00&PPP_TransactionID=1234567890&Status=APPROVED&productId=PIX-DEMO&payment_method=apmgw_PIX&ppp_status=OK&message=APPROVED&transactionType=Sale&type=DEPOSIT&clientRequestId=req-1&clientUniqueId=uniq-1&userPaymentOptionId=upo-1&advanceResponseChecksum=old")
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"preview", "payment", "from-raw",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--file", rawFile,
+		"--target", "local",
+		"--status", "DECLINED",
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "merchant_id=merchant-id-placeholder") {
+		t.Fatalf("output missing replaced merchant_id: %s", output)
+	}
+	if !strings.Contains(output, "Status                   DECLINED") {
+		t.Fatalf("output missing status override: %s", output)
+	}
+	if strings.Contains(output, "advanceResponseChecksum\told") {
+		t.Fatalf("checksum was not recomputed: %s", output)
+	}
+}
+
+func TestSendPaymentFromRawPostsPayload(t *testing.T) {
+	t.Parallel()
+
+	var requestBody string
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll request body error = %v", err)
+		}
+		requestBody = string(body)
+		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte("ok"))
+	}))
+	defer targetServer.Close()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{},
+	})
+
+	rawFile := writeRawPayloadFile(t, "merchant_id=nuvei-docs-merchant&merchant_site_id=nuvei-docs-site&totalAmount=30.00&currency=BRL&responseTimeStamp=2026-05-20.18%3A10%3A00&PPP_TransactionID=1234567890&Status=APPROVED&productId=PIX-DEMO&payment_method=apmgw_PIX&ppp_status=OK&message=APPROVED&transactionType=Sale&type=DEPOSIT&clientRequestId=req-1&clientUniqueId=uniq-1&userPaymentOptionId=upo-1&advanceResponseChecksum=old")
+
+	originalVerify := verifyMerchantProfile
+	verifyMerchantProfile = func(ctx context.Context, profile credentials.Profile) (credentials.Verification, error) {
+		return credentials.Verification{Environment: profile.Environment}, nil
+	}
+	t.Cleanup(func() {
+		verifyMerchantProfile = originalVerify
+	})
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"send", "payment", "from-raw",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--file", rawFile,
+		"--target", targetServer.URL,
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	if !strings.Contains(requestBody, "merchant_id=merchant-id-placeholder") {
+		t.Fatalf("request body missing replaced merchant_id: %s", requestBody)
+	}
+	if strings.Contains(requestBody, "advanceResponseChecksum=old") {
+		t.Fatalf("request body has stale checksum: %s", requestBody)
+	}
+}
+
 func writeTestConfig(t *testing.T, cfg appconfig.Config) string {
 	t.Helper()
 
 	path := filepath.Join(t.TempDir(), "config.toml")
 	if err := appconfig.Save(path, cfg); err != nil {
 		t.Fatalf("Save config error = %v", err)
+	}
+	return path
+}
+
+func writeRawPayloadFile(t *testing.T, rawPayload string) string {
+	t.Helper()
+
+	path := filepath.Join(t.TempDir(), "payload.txt")
+	if err := os.WriteFile(path, []byte(rawPayload), 0o600); err != nil {
+		t.Fatalf("WriteFile payload error = %v", err)
 	}
 	return path
 }
