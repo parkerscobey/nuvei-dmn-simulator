@@ -29,6 +29,7 @@ Implemented phases:
 - Phase 4: credential verification
 - Phase 5: target safety
 - Phase 6: CLI preview/send for Pix
+- Phase 7: quality gates and local smoke
 
 ## What works today
 
@@ -177,6 +178,19 @@ Run tests:
 ```sh
 go test ./...
 ```
+
+Run local smoke:
+
+```sh
+./scripts/local_smoke.sh
+```
+
+The smoke script is fully local and uses sanitized placeholder values. It validates preview output and exercises the local receiver send flow through a targeted CLI test.
+
+Optional credentialed integration:
+
+- GitHub Actions includes a separate manual workflow at `.github/workflows/integration.yml`.
+- It runs only when repository secrets are present and verifies real Nuvei credentials before sending to a local receiver.
 
 See `VISION.md`, `SPEC.md`, and `TODO.md` for broader direction.
 

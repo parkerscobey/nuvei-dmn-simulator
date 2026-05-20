@@ -1,0 +1,60 @@
+name: Integration
+
+on:
+  workflow_dispatch:
+
+jobs:
+  nuvei-verify-and-send:
+    runs-on: ubuntu-latest
+    if: ${{ secrets.NUVEI_MERCHANT_ID != '' && secrets.NUVEI_MERCHANT_SITE_ID != '' && secrets.NUVEI_MERCHANT_SECRET_KEY != '' }}
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v5
+
+      - name: Set up Go
+        uses: actions/setup-go@v6
+        with:
+          go-version: '1.26.x'
+          cache: true
+
+      - name: Start local webhook receiver
+        run: |
+          python3 -m http.server 38080 >/tmp/nuvei-dmn-receiver.log 2>&1 &
+          echo $! > /tmp/nuvei-dmn-receiver.pid
+
+      - name: Create integration config
+        run: |
+          cat > /tmp/nuvei-dmn-integration.toml <<EOF
+          [merchants.ci]
+          environment = "test"
+          merchant_id = "${NUVEI_MERCHANT_ID}"
+          merchant_site_id = "${NUVEI_MERCHANT_SITE_ID}"
+          merchant_secret_key = "${NUVEI_MERCHANT_SECRET_KEY}"
+
+          [targets.local]
+          url = "http://127.0.0.1:38080/nuvei_direct_merchant_notifications"
+          kind = "local"
+          requires_confirm = false
+          EOF
+        env:
+          NUVEI_MERCHANT_ID: ${{ secrets.NUVEI_MERCHANT_ID }}
+          NUVEI_MERCHANT_SITE_ID: ${{ secrets.NUVEI_MERCHANT_SITE_ID }}
+          NUVEI_MERCHANT_SECRET_KEY: ${{ secrets.NUVEI_MERCHANT_SECRET_KEY }}
+
+      - name: Verify Nuvei credentials
+        run: go run ./cmd/nuvei-dmn-simulator config --config /tmp/nuvei-dmn-integration.toml verify ci
+
+      - name: Send Pix DMN to local receiver
+        run: |
+          go run ./cmd/nuvei-dmn-simulator send payment pix \
+            --config /tmp/nuvei-dmn-integration.toml \
+            --profile ci \
+            --target local \
+            --status APPROVED
+
+      - name: Stop local webhook receiver
+        if: always()
+        run: |
+          if [[ -f /tmp/nuvei-dmn-receiver.pid ]]; then
+            kill "$(cat /tmp/nuvei-dmn-receiver.pid)" || true
+          fi
