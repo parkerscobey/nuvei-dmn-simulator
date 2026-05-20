@@ -6,23 +6,40 @@ on:
 jobs:
   nuvei-verify-and-send:
     runs-on: ubuntu-latest
-    if: ${{ secrets.NUVEI_MERCHANT_ID != '' && secrets.NUVEI_MERCHANT_SITE_ID != '' && secrets.NUVEI_MERCHANT_SECRET_KEY != '' }}
+    env:
+      NUVEI_MERCHANT_ID: ${{ secrets.NUVEI_MERCHANT_ID }}
+      NUVEI_MERCHANT_SITE_ID: ${{ secrets.NUVEI_MERCHANT_SITE_ID }}
+      NUVEI_MERCHANT_SECRET_KEY: ${{ secrets.NUVEI_MERCHANT_SECRET_KEY }}
     steps:
+      - name: Check required secrets
+        id: guard
+        run: |
+          if [[ -z "${NUVEI_MERCHANT_ID}" || -z "${NUVEI_MERCHANT_SITE_ID}" || -z "${NUVEI_MERCHANT_SECRET_KEY}" ]]; then
+            echo "run_integration=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping integration run: required NUVEI_* secrets are not configured."
+          else
+            echo "run_integration=true" >> "$GITHUB_OUTPUT"
+          fi
+
       - name: Checkout
+        if: steps.guard.outputs.run_integration == 'true'
         uses: actions/checkout@v5
 
       - name: Set up Go
+        if: steps.guard.outputs.run_integration == 'true'
         uses: actions/setup-go@v6
         with:
           go-version: '1.26.x'
           cache: true
 
       - name: Start local webhook receiver
+        if: steps.guard.outputs.run_integration == 'true'
         run: |
           python3 -m http.server 38080 >/tmp/nuvei-dmn-receiver.log 2>&1 &
           echo $! > /tmp/nuvei-dmn-receiver.pid
 
       - name: Create integration config
+        if: steps.guard.outputs.run_integration == 'true'
         run: |
           cat > /tmp/nuvei-dmn-integration.toml <<EOF
           [merchants.ci]
@@ -36,15 +53,13 @@ jobs:
           kind = "local"
           requires_confirm = false
           EOF
-        env:
-          NUVEI_MERCHANT_ID: ${{ secrets.NUVEI_MERCHANT_ID }}
-          NUVEI_MERCHANT_SITE_ID: ${{ secrets.NUVEI_MERCHANT_SITE_ID }}
-          NUVEI_MERCHANT_SECRET_KEY: ${{ secrets.NUVEI_MERCHANT_SECRET_KEY }}
 
       - name: Verify Nuvei credentials
+        if: steps.guard.outputs.run_integration == 'true'
         run: go run ./cmd/nuvei-dmn-simulator config --config /tmp/nuvei-dmn-integration.toml verify ci
 
       - name: Send Pix DMN to local receiver
+        if: steps.guard.outputs.run_integration == 'true'
         run: |
           go run ./cmd/nuvei-dmn-simulator send payment pix \
             --config /tmp/nuvei-dmn-integration.toml \
@@ -53,7 +68,7 @@ jobs:
             --status APPROVED
 
       - name: Stop local webhook receiver
-        if: always()
+        if: always() && steps.guard.outputs.run_integration == 'true'
         run: |
           if [[ -f /tmp/nuvei-dmn-receiver.pid ]]; then
             kill "$(cat /tmp/nuvei-dmn-receiver.pid)" || true
