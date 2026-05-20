@@ -138,7 +138,7 @@ func newConfigSetTargetCommand(configPath *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			target.Kind, err = promptString(out, reader, "Target kind (local/staging/sandbox/production-hosted-sandbox)")
+			target.Kind, err = promptString(out, reader, "Target kind (local/staging/sandbox/demo/trusted/production-hosted-sandbox)")
 			if err != nil {
 				return err
 			}

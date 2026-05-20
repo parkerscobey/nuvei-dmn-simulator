@@ -226,8 +226,20 @@ func ValidateTargetProfile(target TargetProfile) error {
 	if target.Kind == "" {
 		return fmt.Errorf("target kind is required")
 	}
+	if !validTargetKind(target.Kind) {
+		return fmt.Errorf("target kind must be local, staging, sandbox, demo, trusted, or production-hosted-sandbox")
+	}
 
 	return nil
+}
+
+func validTargetKind(kind string) bool {
+	switch kind {
+	case "local", "staging", "sandbox", "demo", "trusted", "production-hosted-sandbox":
+		return true
+	default:
+		return false
+	}
 }
 
 func parseSection(section string) (string, string, error) {
