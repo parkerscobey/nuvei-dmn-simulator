@@ -19,19 +19,6 @@ Teams integrating Nuvei DMNs often need deterministic webhook testing without wa
 - Never use `/payment` or another money-moving endpoint for credential verification.
 - Block unknown public targets by default unless explicitly overridden.
 
-## Status
-
-Implemented phases:
-
-- Phase 1: repository skeleton
-- Phase 2: payment DMN core
-- Phase 3: config and secret handling
-- Phase 4: credential verification
-- Phase 5: target safety
-- Phase 6: CLI preview/send for Pix
-- Phase 7: quality gates and local smoke
-- Phase 8: raw payload mode
-
 ## What works today
 
 - Merchant profile configuration stored outside the repository.
