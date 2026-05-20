@@ -1,0 +1,18 @@
+# Local simulator config and secrets.
+nuvei-dmn-simulator.toml
+config.toml
+.nuvei-dmn-simulator/
+
+# Generated payloads and scratch output.
+payloads/
+*.payload
+*.dmn
+
+# Build outputs.
+bin/
+dist/
+nuvei-dmn-simulator
+
+# Editor and OS files.
+.DS_Store
+*.swp
