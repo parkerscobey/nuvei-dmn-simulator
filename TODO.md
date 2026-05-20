@@ -13,12 +13,12 @@
 
 ## Phase 2: Nuvei Payment DMN Core
 
-- [ ] Implement payment DMN SHA-256 `advanceResponseChecksum` generation.
-- [ ] Implement URL-encoded payload serialization.
-- [ ] Implement payment DMN base payload builder.
-- [ ] Implement Pix payment DMN defaults.
-- [ ] Add status mapping for `PENDING`, `APPROVED`, and `DECLINED`.
-- [ ] Add unit tests using Nuvei documentation examples where possible.
+- [x] Implement payment DMN SHA-256 `advanceResponseChecksum` generation.
+- [x] Implement URL-encoded payload serialization.
+- [x] Implement payment DMN base payload builder.
+- [x] Implement Pix payment DMN defaults.
+- [x] Add status mapping for `PENDING`, `APPROVED`, and `DECLINED`.
+- [x] Add unit tests using Nuvei documentation examples where possible.
 
 ## Phase 3: Config and Secret Handling
 
