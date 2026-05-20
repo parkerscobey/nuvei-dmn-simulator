@@ -19,7 +19,7 @@ This tool must be safe by default:
 
 ## 📊 Status
 
-This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, and **Phase 3 config/secret handling**.
+This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, **Phase 3 config/secret handling**, and **Phase 4 credential verification**.
 
 ## 📋 Planned Usage
 
@@ -32,6 +32,8 @@ nuvei-dmn-simulator send payment pix --profile local-demo --status APPROVED --ta
 ```
 
 Config is stored outside the repository by default at your OS user config path, for example `~/.config/nuvei-dmn-simulator/config.toml` on macOS/Linux. `config set-merchant` prompts for the merchant secret without echoing it when run in a terminal, and `config list` always redacts stored secrets.
+
+`config verify <profile>` contacts Nuvei `/getSessionToken` using the selected profile's configured `test` or `prod` environment. This proves the stored merchant credentials can authenticate with Nuvei without using `/payment`, without opening an order, and without printing the merchant secret or returned session token.
 
 See `examples/config.example.toml` for a placeholder-only example.
 
@@ -99,7 +101,7 @@ rm -rf /tmp/nuvei-dmn-e2e
 
 To use your normal user config instead, omit `--config "$NUVEI_DMN_CONFIG"`. On macOS/Linux, the default path is typically `~/.config/nuvei-dmn-simulator/config.toml`.
 
-`config verify`, `preview`, and `send` are planned for later phases and are not expected to work yet.
+`config verify` requires real Nuvei test or production credentials and will call Nuvei. `preview` and `send` are planned for later phases and are not expected to work yet.
 
 ## 💻 Development
 

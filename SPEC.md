@@ -26,6 +26,7 @@ Keep third-party dependencies minimal. The tool should be easy to audit and easy
 
 - Webhooks / DMNs: https://docs.nuvei.com/documentation/integration/webhooks/
 - Payment DMNs: https://docs.nuvei.com/documentation/integration/webhooks/payment-dmns/
+- getSessionToken API: https://docs.nuvei.com/api/main/indexMain_v1_0.html?json#getSessionToken
 - openOrder API: https://docs.nuvei.com/api/main/indexMain_v1_0.html?json#openOrder
 
 ## Credential Verification Requirement
@@ -42,7 +43,9 @@ Credential verification must be a real Nuvei API call. Local checksum generation
 
 ### Preferred Verification
 
-Use the safest available Nuvei read-only or non-money-moving credential validation endpoint if one is confirmed in Nuvei documentation or by Nuvei support.
+Use Nuvei `/getSessionToken` as the preferred credential verification endpoint. Nuvei documents this method as receiving merchant authentication details and returning a `sessionToken`; it is recommended for pure API flows and does not open an order or send a payment request.
+
+Known side effect: a successful verification issues a Nuvei session token for the supplied merchant/site credentials. The simulator stores this token only in memory for the current process and does not print it.
 
 ### Initial Acceptable Verification
 
@@ -59,7 +62,7 @@ Initial `openOrder` verification constraints:
 - Do not create Pix, Boleto, payout, refund, void, or any money-moving transaction as credential verification.
 - Document any side effects of `openOrder` verification.
 
-The simulator should cache successful credential verification for a short local session so users are not forced to call Nuvei before every single payload preview. Sending should still require that credentials have been verified in the current session or that the user explicitly runs verification first.
+The simulator should cache successful credential verification in memory for the current process so users are not forced to call Nuvei before every single payload preview or send inside the same CLI/server session. Sending should still require that credentials have been verified in the current process or that the send flow verifies them before sending.
 
 ## Credential Storage and Configuration
 

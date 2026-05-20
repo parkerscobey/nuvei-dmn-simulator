@@ -2,12 +2,15 @@ package main
 
 import (
 	"bufio"
+	"context"
 	"fmt"
 	"io"
 	"os"
 	"strings"
+	"time"
 
 	appconfig "github.com/parkerscobey/nuvei-dmn-simulator/internal/config"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/credentials"
 	"github.com/spf13/cobra"
 	"golang.org/x/term"
 )
@@ -24,6 +27,7 @@ func newConfigCommand() *cobra.Command {
 	cmd.AddCommand(newConfigListCommand(&configPath))
 	cmd.AddCommand(newConfigSetMerchantCommand(&configPath))
 	cmd.AddCommand(newConfigSetTargetCommand(&configPath))
+	cmd.AddCommand(newConfigVerifyCommand(&configPath))
 
 	return cmd
 }
@@ -153,6 +157,59 @@ func newConfigSetTargetCommand(configPath *string) *cobra.Command {
 			}
 
 			fmt.Fprintf(out, "Saved target profile %q to %s\n", targetName, path)
+			return nil
+		},
+	}
+}
+
+func newConfigVerifyCommand(configPath *string) *cobra.Command {
+	return &cobra.Command{
+		Use:   "verify <profile>",
+		Short: "Verify a merchant profile with Nuvei",
+		Long: `Verify a merchant profile by calling Nuvei /getSessionToken.
+
+This authenticates merchant credentials with Nuvei without sending a payment request
+or opening an order. The merchant secret is loaded from local config and is never
+printed by this command.`,
+		Args: cobra.ExactArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			profileName := args[0]
+			path, err := resolveConfigPath(*configPath)
+			if err != nil {
+				return err
+			}
+
+			cfg, err := appconfig.Load(path)
+			if err != nil {
+				return err
+			}
+
+			profile, ok := cfg.Merchants[profileName]
+			if !ok {
+				return fmt.Errorf("merchant profile %q not found", profileName)
+			}
+			if err := appconfig.ValidateMerchantProfile(profile); err != nil {
+				return err
+			}
+
+			ctx, cancel := context.WithTimeout(cmd.Context(), 30*time.Second)
+			defer cancel()
+
+			verification, err := credentials.NewClient(nil).Verify(ctx, credentials.Profile{
+				Environment:       profile.Environment,
+				MerchantID:        profile.MerchantID,
+				MerchantSiteID:    profile.MerchantSiteID,
+				MerchantSecretKey: profile.MerchantSecretKey,
+			})
+			if err != nil {
+				return err
+			}
+
+			cacheNote := ""
+			if verification.Cached {
+				cacheNote = " (cached)"
+			}
+			fmt.Fprintf(cmd.OutOrStdout(), "Verified merchant profile %q with Nuvei %s environment using /getSessionToken%s.\n", profileName, verification.Environment, cacheNote)
 			return nil
 		},
 	}

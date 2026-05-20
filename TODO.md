@@ -32,14 +32,14 @@
 
 ## Phase 4: Credential Verification
 
-- [ ] Research and confirm the safest Nuvei credential verification endpoint.
-- [ ] Implement preferred read-only credential verification if available.
-- [ ] Otherwise implement acceptable `openOrder` verification.
-- [ ] Ensure `/payment` is never used for credential verification.
-- [ ] Cache successful verification in memory for the current CLI/server session.
-- [ ] Add `config verify <profile>` command.
-- [ ] Block send operations until selected merchant profile has been verified.
-- [ ] Add tests with mocked Nuvei API responses.
+- [x] Research and confirm the safest Nuvei credential verification endpoint.
+- [x] Implement preferred non-money-moving `/getSessionToken` verification.
+- [x] Document `openOrder` as fallback only when `/getSessionToken` is unavailable.
+- [x] Ensure `/payment` is never used for credential verification.
+- [x] Cache successful verification in memory for the current CLI/server session.
+- [x] Add `config verify <profile>` command.
+- [x] Add reusable verification gate for future send operations.
+- [x] Add tests with mocked Nuvei API responses.
 
 ## Phase 5: Target Safety
 
