@@ -62,7 +62,15 @@
 - [x] Add tests with mocked target endpoint.
 - [x] Add strict correlation mode via `--require-correlation-fields`.
 
-## Phase 7: Raw Payload Mode
+## Phase 7: Quality Gates and Local Smoke
+
+- [ ] Add a local smoke script for preview plus local receiver send flow.
+- [ ] Add a CI smoke job that runs the local smoke script with sanitized placeholders.
+- [ ] Keep local smoke fully local with no external network dependency.
+- [ ] Add a separate optional integration job for credential verification and send using repository secrets.
+- [ ] Keep `go test ./...` required on every pull request.
+
+## Phase 8: Raw Payload Mode
 
 - [ ] Implement URL-encoded raw payload parser.
 - [ ] Implement status and field overrides.
@@ -71,7 +79,7 @@
 - [ ] Support preview and send from raw payloads.
 - [ ] Add tests with sanitized Nuvei sample payloads.
 
-## Phase 8: Web Server UI
+## Phase 9: Web Server UI
 
 - [ ] Implement `server` command.
 - [ ] Bind to `127.0.0.1` by default.
@@ -81,8 +89,10 @@
 - [ ] Add credential verification action.
 - [ ] Reuse core builders and sender.
 - [ ] Add tests for HTTP handlers with mocked sender.
+- [ ] Capture first usable UI screenshot for README.
+- [ ] Record short GIF: verify -> preview -> send.
 
-## Phase 9: More APMs
+## Phase 10: More APMs
 
 - [ ] Add Boleto payment DMN defaults.
 - [ ] Add generic APM builder options.
@@ -90,10 +100,21 @@
 - [ ] Add fixture payloads for Pix and Boleto.
 - [ ] Add tests for each APM default set.
 
-## Phase 10: Distribution
+## Phase 11: Open Source Polish
+
+- [ ] Add sanitized README example output for both `preview` and `send`.
+- [ ] Add `CONTRIBUTING.md` with local dev and test flow.
+- [ ] Add a short walkthrough script for a five-minute local evaluation path.
+
+## Phase 12: Demo Harness
+
+- [ ] Add a tiny example webhook receiver for local end-to-end testing.
+- [ ] Add a one-command or short scripted demo flow for verify -> preview -> send.
+- [ ] Add sanitized request and response fixtures for docs and demos.
+
+## Phase 13: Distribution
 
 - [ ] Add release build scripts for macOS, Linux, and Windows.
 - [ ] Add checksums for released binaries.
-- [ ] Add installation instructions.
+- [ ] Add installation instructions for released binaries.
 - [ ] Add Homebrew tap plan if useful.
-- [ ] Add license.
