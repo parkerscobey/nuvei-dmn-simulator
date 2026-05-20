@@ -156,4 +156,8 @@ func TestValidateProfiles(t *testing.T) {
 	if err := ValidateTargetProfile(TargetProfile{URL: "localhost:3000", Kind: "local"}); err == nil {
 		t.Fatal("ValidateTargetProfile returned nil error for relative URL")
 	}
+
+	if err := ValidateTargetProfile(TargetProfile{URL: "https://example.com/nuvei", Kind: "production"}); err == nil {
+		t.Fatal("ValidateTargetProfile returned nil error for invalid target kind")
+	}
 }
