@@ -64,11 +64,11 @@
 
 ## Phase 7: Quality Gates and Local Smoke
 
-- [ ] Add a local smoke script for preview plus local receiver send flow.
-- [ ] Add a CI smoke job that runs the local smoke script with sanitized placeholders.
-- [ ] Keep local smoke fully local with no external network dependency.
-- [ ] Add a separate optional integration job for credential verification and send using repository secrets.
-- [ ] Keep `go test ./...` required on every pull request.
+- [x] Add a local smoke script for preview plus local receiver send flow.
+- [x] Add a CI smoke job that runs the local smoke script with sanitized placeholders.
+- [x] Keep local smoke fully local with no external network dependency.
+- [x] Add a separate optional integration job for credential verification and send using repository secrets.
+- [x] Keep `go test ./...` required on every pull request.
 
 ## Phase 8: Raw Payload Mode
 
