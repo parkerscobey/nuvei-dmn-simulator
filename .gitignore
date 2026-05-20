@@ -11,7 +11,7 @@ payloads/
 # Build outputs.
 bin/
 dist/
-nuvei-dmn-simulator
+/nuvei-dmn-simulator
 
 # Editor and OS files.
 .DS_Store

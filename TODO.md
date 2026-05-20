@@ -22,13 +22,13 @@
 
 ## Phase 3: Config and Secret Handling
 
-- [ ] Implement config file loading from user config directory.
-- [ ] Implement `config set-merchant <profile>` with interactive prompts.
-- [ ] Ensure merchant secret input is not echoed.
-- [ ] Implement `config list` with secrets redacted.
-- [ ] Implement `config set-target <name>`.
-- [ ] Add config examples with placeholder values only.
-- [ ] Add tests for config parsing and redaction.
+- [x] Implement config file loading from user config directory.
+- [x] Implement `config set-merchant <profile>` with interactive prompts.
+- [x] Ensure merchant secret input is not echoed.
+- [x] Implement `config list` with secrets redacted.
+- [x] Implement `config set-target <name>`.
+- [x] Add config examples with placeholder values only.
+- [x] Add tests for config parsing and redaction.
 
 ## Phase 4: Credential Verification
 

@@ -1,0 +1,22 @@
+# Example only. Do not put real merchant credentials in files committed to git.
+
+[merchants.local-demo]
+environment = "test"
+merchant_id = "merchant-id-placeholder"
+merchant_site_id = "merchant-site-id-placeholder"
+merchant_secret_key = "merchant-secret-key-placeholder"
+
+[targets.local]
+url = "http://localhost:3000/nuvei_direct_merchant_notifications"
+kind = "local"
+requires_confirm = false
+
+[targets.staging]
+url = "https://staging.example.com/nuvei_direct_merchant_notifications"
+kind = "staging"
+requires_confirm = false
+
+[targets.prod_sandbox_gateway]
+url = "https://app.example.com/nuvei_direct_merchant_notifications"
+kind = "production-hosted-sandbox"
+requires_confirm = true
