@@ -19,7 +19,7 @@ This tool must be safe by default:
 
 ## 📊 Status
 
-This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, **Phase 3 config/secret handling**, and **Phase 4 credential verification**.
+This repository has completed the **Phase 1 skeleton**, **Phase 2 payment DMN core**, **Phase 3 config/secret handling**, **Phase 4 credential verification**, and **Phase 5 target safety**.
 
 ## 📋 Planned Usage
 
@@ -75,7 +75,7 @@ Use these values when prompted:
 
 ```text
 Target URL: http://localhost:3000/nuvei_direct_merchant_notifications
-Target kind (local/staging/sandbox/production-hosted-sandbox): local
+Target kind (local/staging/sandbox/demo/trusted/production-hosted-sandbox): local
 Requires confirmation before send (true/false): false
 ```
 
@@ -102,6 +102,12 @@ rm -rf /tmp/nuvei-dmn-e2e
 To use your normal user config instead, omit `--config "$NUVEI_DMN_CONFIG"`. On macOS/Linux, the default path is typically `~/.config/nuvei-dmn-simulator/config.toml`.
 
 `config verify` requires real Nuvei test or production credentials and will call Nuvei. `preview` and `send` are planned for later phases and are not expected to work yet.
+
+## Target Safety
+
+Target safety blocks unknown public URLs by default. Local development URLs are allowed when they use `localhost`, a loopback IP, `.test`, `.local`, or `.localhost`.
+
+Public staging, sandbox, demo, or trusted testing hosts must be saved as target profiles with `config set-target <name>`. Production-hosted sandbox profiles, or any profile marked `requires_confirm = true`, require explicit confirmation before a future send operation proceeds. The future `--allow-untrusted-target` escape hatch is intended only for unknown public hosts; denied schemes and malformed URLs stay blocked.
 
 ## 💻 Development
 

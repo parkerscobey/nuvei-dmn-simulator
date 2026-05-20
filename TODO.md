@@ -43,13 +43,13 @@
 
 ## Phase 5: Target Safety
 
-- [ ] Implement default target classification.
-- [ ] Allow localhost/test/local targets by default.
-- [ ] Block unknown public targets by default.
-- [ ] Support trusted target profiles.
-- [ ] Support explicit `--allow-untrusted-target` escape hatch.
-- [ ] Add warnings for production-hosted sandbox targets that require confirmation.
-- [ ] Add tests for target safety behavior.
+- [x] Implement default target classification.
+- [x] Allow localhost/test/local targets by default.
+- [x] Block unknown public targets by default.
+- [x] Support trusted target profiles.
+- [x] Support explicit `--allow-untrusted-target` escape hatch.
+- [x] Add warnings for production-hosted sandbox targets that require confirmation.
+- [x] Add tests for target safety behavior.
 
 ## Phase 6: CLI Preview and Send
 
