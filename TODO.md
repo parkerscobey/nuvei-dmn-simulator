@@ -53,13 +53,14 @@
 
 ## Phase 6: CLI Preview and Send
 
-- [ ] Implement `preview payment pix`.
-- [ ] Implement `send payment pix`.
-- [ ] Support non-secret override flags.
-- [ ] Print payload preview in readable table and raw URL-encoded form.
-- [ ] Send as `application/x-www-form-urlencoded`.
-- [ ] Show HTTP status and response body.
-- [ ] Add tests with mocked target endpoint.
+- [x] Implement `preview payment pix`.
+- [x] Implement `send payment pix`.
+- [x] Support non-secret override flags.
+- [x] Print payload preview in readable table and raw URL-encoded form.
+- [x] Send as `application/x-www-form-urlencoded`.
+- [x] Show HTTP status and response body.
+- [x] Add tests with mocked target endpoint.
+- [x] Add strict correlation mode via `--require-correlation-fields`.
 
 ## Phase 7: Raw Payload Mode
 
