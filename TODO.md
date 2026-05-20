@@ -81,6 +81,8 @@
 - [ ] Add credential verification action.
 - [ ] Reuse core builders and sender.
 - [ ] Add tests for HTTP handlers with mocked sender.
+- [ ] Capture first usable UI screenshot for README.
+- [ ] Record short GIF: verify -> preview -> send.
 
 ## Phase 9: More APMs
 
@@ -94,6 +96,26 @@
 
 - [ ] Add release build scripts for macOS, Linux, and Windows.
 - [ ] Add checksums for released binaries.
-- [ ] Add installation instructions.
+- [ ] Add installation instructions for released binaries.
 - [ ] Add Homebrew tap plan if useful.
-- [ ] Add license.
+
+## Phase 11: Open Source Polish
+
+- [ ] Add sanitized README example output for both `preview` and `send`.
+- [ ] Add `CONTRIBUTING.md` with local dev/test flow.
+- [ ] Add GitHub repo topics and revisit description/homepage as project matures.
+- [ ] Add a short walkthrough section or demo script for employer/recruiter-friendly evaluation.
+
+## Phase 12: Demo Harness
+
+- [ ] Add a tiny example webhook receiver for local end-to-end testing.
+- [ ] Add a one-command or short scripted demo flow for verify -> preview -> send.
+- [ ] Add sanitized request/response fixtures for docs and demos.
+- [ ] Document a five-minute evaluator path for trying the project without merchant app context.
+
+## Phase 13: CI E2E Smoke Test
+
+- [ ] Add a CI smoke path that boots the example receiver and exercises preview -> send against local fixtures.
+- [ ] Keep the CI smoke flow fully local and sanitized, with no real Nuvei credentials or external network dependency.
+- [ ] Assert on signed payload shape, target safety behavior, and receiver response handling.
+- [ ] Publish the smoke path as both a GitHub Actions job and a local script developers can run before opening PRs.
