@@ -26,6 +26,7 @@ Teams integrating Nuvei DMNs often need deterministic webhook testing without wa
 - Nuvei credential verification through `/getSessionToken`.
 - Pix payment DMN preview with signed payload generation.
 - Pix payment DMN send flow with target safety checks.
+- Boleto payment DMN defaults in the shared payment builder package.
 - Strict correlation mode via `--require-correlation-fields`.
 - Raw URL-encoded payload import with safe override + checksum recompute.
 - Local web UI with HTMX actions for verify, preview, and send.
@@ -161,6 +162,27 @@ Behavior:
 - Recomputes `advanceResponseChecksum` after overrides.
 
 If you need to preserve merchant identifiers from the file, pass `--keep-raw-merchant-fields`.
+
+## APM-specific fields
+
+APM default builders currently support Pix and Boleto. Both use shared base payment DMN fields and apply APM defaults for:
+
+- `payment_method` (Pix: `apmgw_PIX`, Boleto: `apmgw_BOLETO`)
+- `transactionType` (`Sale`)
+- `type` (`DEPOSIT`)
+- `currency` (`BRL`)
+- `totalAmount` (`30.00`)
+
+For `DECLINED` status, both APM defaults set:
+
+- `Reason=Rejected by simulator.`
+- `ReasonCode=9999`
+- `ErrCode=9`
+
+Fixture payloads for raw import tests are provided at:
+
+- `internal/nuvei/dmn/payment/apm/testdata/pix_payload.txt`
+- `internal/nuvei/dmn/payment/apm/testdata/boleto_payload.txt`
 
 ## Web UI
 
