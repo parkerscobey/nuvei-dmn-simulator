@@ -118,8 +118,6 @@ func TestPreviewPaymentBoletoPrintsTableAndRawPayload(t *testing.T) {
 }
 
 func TestSendPaymentPixPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
-	t.Parallel()
-
 	var (
 		requestMethod      string
 		requestContentType string
@@ -197,8 +195,6 @@ func TestSendPaymentPixPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
 }
 
 func TestSendPaymentBoletoPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
-	t.Parallel()
-
 	var requestBody string
 	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
@@ -433,8 +429,6 @@ func TestPreviewPaymentFromRawReplacesMerchantAndRecomputesChecksum(t *testing.T
 }
 
 func TestSendPaymentFromRawPostsPayload(t *testing.T) {
-	t.Parallel()
-
 	var requestBody string
 	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		body, err := io.ReadAll(r.Body)
