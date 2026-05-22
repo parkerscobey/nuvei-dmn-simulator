@@ -118,3 +118,11 @@
 - [ ] Add checksums for released binaries.
 - [ ] Add installation instructions for released binaries.
 - [ ] Add Homebrew tap plan if useful.
+
+## Phase 14: Web UI Config Management
+
+- [ ] Add web UI form to create/update merchant profiles.
+- [ ] Add web UI form to create/update target profiles.
+- [ ] Ensure merchant secret input is never echoed or rendered back in responses.
+- [ ] Add server-side validation and redacted success/error messaging for config updates.
+- [ ] Add handler tests for config-in-UI create/update flows.

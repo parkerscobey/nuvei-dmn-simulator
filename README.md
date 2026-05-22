@@ -164,6 +164,13 @@ If you need to preserve merchant identifiers from the file, pass `--keep-raw-mer
 
 ## Web UI
 
+Prerequisite: the web UI reads merchant and target profiles from the same local config file used by CLI commands. Set up profiles first:
+
+```sh
+go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-merchant local-demo
+go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-target local
+```
+
 Run the local UI server:
 
 ```sh
