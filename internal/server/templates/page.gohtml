@@ -47,7 +47,9 @@
       <div class="row">
         <label for="apm">APM</label>
         <select id="apm" name="apm">
-          <option value="pix">pix</option>
+          {{range .APMs}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
         </select>
       </div>
       <div class="row">

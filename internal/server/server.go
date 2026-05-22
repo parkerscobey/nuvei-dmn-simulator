@@ -34,6 +34,7 @@ type Handler struct {
 type PageData struct {
 	MerchantProfiles []string
 	Targets          []string
+	APMs             []string
 	DefaultStatus    string
 }
 
@@ -86,6 +87,7 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		MerchantProfiles: sortedMerchantProfiles(cfg),
 		Targets:          sortedTargets(cfg),
+		APMs:             []string{"pix", "boleto"},
 		DefaultStatus:    payment.StatusApproved,
 	}
 	if err := h.tmpl.ExecuteTemplate(w, "page", data); err != nil {
@@ -256,11 +258,18 @@ func (h *Handler) resolveInput(r *http.Request) (resolvedInput, ResultData, erro
 	if apmValue == "" {
 		apmValue = "pix"
 	}
-	if apmValue != "pix" {
+
+	buildAPM := apm.Pix
+	switch apmValue {
+	case "pix":
+		buildAPM = apm.Pix
+	case "boleto":
+		buildAPM = apm.Boleto
+	default:
 		return resolvedInput{}, ResultData{}, fmt.Errorf("unsupported APM %q", apmValue)
 	}
 
-	p, err := apm.Pix(payment.Options{
+	p, err := buildAPM(payment.Options{
 		MerchantID:          profile.MerchantID,
 		MerchantSiteID:      profile.MerchantSiteID,
 		MerchantSecretKey:   profile.MerchantSecretKey,
