@@ -28,6 +28,7 @@ Teams integrating Nuvei DMNs often need deterministic webhook testing without wa
 - Pix payment DMN send flow with target safety checks.
 - Strict correlation mode via `--require-correlation-fields`.
 - Raw URL-encoded payload import with safe override + checksum recompute.
+- Local web UI with HTMX actions for verify, preview, and send.
 
 ## Install
 
@@ -160,6 +161,36 @@ Behavior:
 - Recomputes `advanceResponseChecksum` after overrides.
 
 If you need to preserve merchant identifiers from the file, pass `--keep-raw-merchant-fields`.
+
+## Web UI
+
+Prerequisite: the web UI reads merchant and target profiles from the same local config file used by CLI commands. Set up profiles first:
+
+```sh
+go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-merchant local-demo
+go run ./cmd/nuvei-dmn-simulator config --config "$NUVEI_DMN_CONFIG" set-target local
+```
+
+Run the local UI server:
+
+```sh
+go run ./cmd/nuvei-dmn-simulator server --config "$NUVEI_DMN_CONFIG"
+```
+
+Defaults: binds to `127.0.0.1:8080`. Override with `--host` and `--port` if needed.
+
+The web UI uses the same core logic as CLI send/preview:
+
+- Merchant profile and target resolution from config.
+- Pix payload building and checksum generation.
+- Target safety classification and allow/untrusted controls.
+- Nuvei `/getSessionToken` verification before send.
+- Form-encoded DMN sending with response status/body display.
+
+Phase 9 media artifacts:
+
+- Screenshot: `docs/media/phase-9-web-ui.png`
+- GIF: `docs/media/phase-9-verify-preview-send.gif`
 
 7. Clean up.
 

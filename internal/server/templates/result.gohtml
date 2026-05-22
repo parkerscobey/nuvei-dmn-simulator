@@ -1,0 +1,27 @@
+{{define "result"}}
+<section>
+  <h2>{{.Title}}</h2>
+  {{if .Error}}
+    <p><strong>Error:</strong> {{.Error}}</p>
+  {{else}}
+    {{if .VerificationNote}}<p>{{.VerificationNote}}</p>{{end}}
+    {{if .ShowTargetSummary}}
+      <p>Target host: {{.TargetHost}}</p>
+      <p>Target classification: {{.TargetClass}}</p>
+      <p>Target reason: {{.TargetReason}}</p>
+    {{end}}
+    {{if .PayloadRows}}
+      <h3>Payload fields</h3>
+      <pre>{{range .PayloadRows}}{{.Key}}={{.Value}}
+{{end}}</pre>
+      <h3>Raw URL-encoded payload</h3>
+      <pre>{{.RawPayload}}</pre>
+    {{end}}
+    {{if gt .HTTPStatus 0}}
+      <h3>HTTP response</h3>
+      <p>Status: {{.HTTPStatus}}</p>
+      <pre>{{.HTTPBody}}</pre>
+    {{end}}
+  {{end}}
+</section>
+{{end}}

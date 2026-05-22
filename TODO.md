@@ -81,16 +81,16 @@
 
 ## Phase 9: Web Server UI
 
-- [ ] Implement `server` command.
-- [ ] Bind to `127.0.0.1` by default.
-- [ ] Add Go templates for profile/target/APM/status form.
-- [ ] Add HTMX preview endpoint.
-- [ ] Add HTMX send endpoint.
-- [ ] Add credential verification action.
-- [ ] Reuse core builders and sender.
-- [ ] Add tests for HTTP handlers with mocked sender.
-- [ ] Capture first usable UI screenshot for README.
-- [ ] Record short GIF: verify -> preview -> send.
+- [x] Implement `server` command.
+- [x] Bind to `127.0.0.1` by default.
+- [x] Add Go templates for profile/target/APM/status form.
+- [x] Add HTMX preview endpoint.
+- [x] Add HTMX send endpoint.
+- [x] Add credential verification action.
+- [x] Reuse core builders and sender.
+- [x] Add tests for HTTP handlers with mocked sender.
+- [x] Capture first usable UI screenshot for README.
+- [x] Record short GIF: verify -> preview -> send.
 
 ## Phase 10: More APMs
 
@@ -118,3 +118,11 @@
 - [ ] Add checksums for released binaries.
 - [ ] Add installation instructions for released binaries.
 - [ ] Add Homebrew tap plan if useful.
+
+## Phase 14: Web UI Config Management
+
+- [ ] Add web UI form to create/update merchant profiles.
+- [ ] Add web UI form to create/update target profiles.
+- [ ] Ensure merchant secret input is never echoed or rendered back in responses.
+- [ ] Add server-side validation and redacted success/error messaging for config updates.
+- [ ] Add handler tests for config-in-UI create/update flows.

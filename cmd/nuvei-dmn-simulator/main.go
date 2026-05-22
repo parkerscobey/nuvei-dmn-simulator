@@ -32,6 +32,7 @@ It must not be used to send unsigned DMNs or to bypass merchant webhook security
 	rootCmd.AddCommand(newConfigCommand())
 	rootCmd.AddCommand(newPreviewCommand())
 	rootCmd.AddCommand(newSendCommand())
+	rootCmd.AddCommand(newServerCommand())
 
 	return rootCmd
 }

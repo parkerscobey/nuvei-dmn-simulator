@@ -1,0 +1,87 @@
+{{define "page"}}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>nuvei-dmn-simulator</title>
+  <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+  <style>
+    body { font-family: sans-serif; margin: 1.5rem; max-width: 70rem; }
+    h1 { margin-bottom: 0.25rem; }
+    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(16rem, 1fr)); gap: 0.8rem; }
+    label { font-weight: 600; display: block; margin-bottom: 0.25rem; }
+    input, select { width: 100%; box-sizing: border-box; padding: 0.45rem; }
+    .row { margin-bottom: 0.7rem; }
+    .checks { display: flex; gap: 1.2rem; margin: 1rem 0; }
+    .checks label { font-weight: 500; display: flex; align-items: center; gap: 0.35rem; }
+    .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
+    button { padding: 0.5rem 0.9rem; cursor: pointer; }
+    #result { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Nuvei DMN Simulator</h1>
+  <p>Local safe-by-default UI for verify, preview, and send.</p>
+  <p><strong>Config prerequisite:</strong> this UI uses profiles from your local config file. Set them first with <code>nuvei-dmn-simulator config set-merchant</code> and <code>nuvei-dmn-simulator config set-target</code>.</p>
+
+  <form id="sim-form">
+    <div class="grid">
+      <div class="row">
+        <label for="profile">Merchant profile</label>
+        <select id="profile" name="profile" required>
+          {{range .MerchantProfiles}}
+          <option value="{{.}}">{{.}}</option>
+          {{end}}
+        </select>
+      </div>
+      <div class="row">
+        <label for="target">Target profile or URL</label>
+        <input id="target" name="target" list="targets" required>
+        <datalist id="targets">
+          {{range .Targets}}
+          <option value="{{.}}"></option>
+          {{end}}
+        </datalist>
+      </div>
+      <div class="row">
+        <label for="apm">APM</label>
+        <select id="apm" name="apm">
+          <option value="pix">pix</option>
+        </select>
+      </div>
+      <div class="row">
+        <label for="status">Status</label>
+        <select id="status" name="status">
+          <option value="APPROVED" {{if eq .DefaultStatus "APPROVED"}}selected{{end}}>APPROVED</option>
+          <option value="PENDING" {{if eq .DefaultStatus "PENDING"}}selected{{end}}>PENDING</option>
+          <option value="DECLINED" {{if eq .DefaultStatus "DECLINED"}}selected{{end}}>DECLINED</option>
+        </select>
+      </div>
+      <div class="row"><label for="total_amount">totalAmount</label><input id="total_amount" name="total_amount"></div>
+      <div class="row"><label for="currency">currency</label><input id="currency" name="currency"></div>
+      <div class="row"><label for="user_payment_option_id">userPaymentOptionId</label><input id="user_payment_option_id" name="user_payment_option_id"></div>
+      <div class="row"><label for="ppp_transaction_id">PPP_TransactionID</label><input id="ppp_transaction_id" name="ppp_transaction_id"></div>
+      <div class="row"><label for="transaction_id">TransactionID</label><input id="transaction_id" name="transaction_id"></div>
+      <div class="row"><label for="client_unique_id">clientUniqueId</label><input id="client_unique_id" name="client_unique_id"></div>
+      <div class="row"><label for="client_request_id">clientRequestId</label><input id="client_request_id" name="client_request_id"></div>
+      <div class="row"><label for="reason">Reason</label><input id="reason" name="reason"></div>
+      <div class="row"><label for="reason_code">ReasonCode</label><input id="reason_code" name="reason_code"></div>
+    </div>
+
+    <div class="checks">
+      <label><input type="checkbox" name="allow_untrusted">allow untrusted target</label>
+      <label><input type="checkbox" name="confirm_send">confirm production-hosted sandbox send</label>
+    </div>
+
+    <div class="actions">
+      <button type="button" hx-post="/htmx/verify" hx-include="#sim-form" hx-target="#result" hx-swap="innerHTML">Verify credentials</button>
+      <button type="button" hx-post="/htmx/preview" hx-include="#sim-form" hx-target="#result" hx-swap="innerHTML">Preview payload</button>
+      <button type="button" hx-post="/htmx/send" hx-include="#sim-form" hx-target="#result" hx-swap="innerHTML">Send payload</button>
+    </div>
+  </form>
+
+  <div id="result"></div>
+</body>
+</html>
+{{end}}

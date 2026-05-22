@@ -14,6 +14,7 @@ import (
 	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/dmn/payment"
 	"github.com/parkerscobey/nuvei-dmn-simulator/internal/nuvei/dmn/payment/apm"
 	"github.com/parkerscobey/nuvei-dmn-simulator/internal/sender"
+	"github.com/parkerscobey/nuvei-dmn-simulator/internal/siminput"
 	"github.com/parkerscobey/nuvei-dmn-simulator/internal/targetsafe"
 	"github.com/spf13/cobra"
 )
@@ -316,7 +317,7 @@ func resolvePaymentPixInputs(flags paymentPixFlags) (resolvedPaymentPixInputs, e
 		return resolvedPaymentPixInputs{}, err
 	}
 
-	targetURL, err := resolveTargetURL(cfg, flags.target)
+	targetURL, err := siminput.ResolveTargetURL(cfg, flags.target)
 	if err != nil {
 		return resolvedPaymentPixInputs{}, err
 	}
@@ -343,7 +344,7 @@ func resolvePaymentPixInputs(flags paymentPixFlags) (resolvedPaymentPixInputs, e
 	return resolvedPaymentPixInputs{
 		merchantProfile: merchantProfile,
 		targetURL:       targetURL,
-		trustedProfiles: trustedTargetProfiles(cfg),
+		trustedProfiles: siminput.TrustedTargetProfiles(cfg),
 		payload:         payload,
 	}, nil
 }
@@ -367,7 +368,7 @@ func resolvePaymentFromRawInputs(flags paymentPixFlags) (resolvedPaymentPixInput
 		return resolvedPaymentPixInputs{}, err
 	}
 
-	targetURL, err := resolveTargetURL(cfg, flags.target)
+	targetURL, err := siminput.ResolveTargetURL(cfg, flags.target)
 	if err != nil {
 		return resolvedPaymentPixInputs{}, err
 	}
@@ -414,7 +415,7 @@ func resolvePaymentFromRawInputs(flags paymentPixFlags) (resolvedPaymentPixInput
 	return resolvedPaymentPixInputs{
 		merchantProfile: merchantProfile,
 		targetURL:       targetURL,
-		trustedProfiles: trustedTargetProfiles(cfg),
+		trustedProfiles: siminput.TrustedTargetProfiles(cfg),
 		payload:         payload,
 	}, nil
 }
@@ -424,33 +425,6 @@ func setOverride(fields map[string]string, key, value string) {
 		return
 	}
 	fields[key] = value
-}
-
-func resolveTargetURL(cfg appconfig.Config, targetArg string) (string, error) {
-	if profile, ok := cfg.Targets[targetArg]; ok {
-		if err := appconfig.ValidateTargetProfile(profile); err != nil {
-			return "", err
-		}
-		return profile.URL, nil
-	}
-
-	target := appconfig.TargetProfile{URL: targetArg, Kind: "trusted"}
-	if err := appconfig.ValidateTargetProfile(target); err != nil {
-		return "", fmt.Errorf("target %q is not a configured profile and is not a valid absolute URL", targetArg)
-	}
-	return targetArg, nil
-}
-
-func trustedTargetProfiles(cfg appconfig.Config) map[string]targetsafe.Profile {
-	profiles := make(map[string]targetsafe.Profile, len(cfg.Targets))
-	for name, target := range cfg.Targets {
-		profiles[name] = targetsafe.Profile{
-			URL:             target.URL,
-			Kind:            target.Kind,
-			RequiresConfirm: target.RequiresConfirm,
-		}
-	}
-	return profiles
 }
 
 func toCredentialProfile(profile appconfig.MerchantProfile) credentials.Profile {
