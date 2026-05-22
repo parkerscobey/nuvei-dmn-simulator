@@ -33,6 +33,9 @@ func TestHomeRendersForm(t *testing.T) {
 	if !strings.Contains(body, "hx-post=\"/htmx/preview\"") {
 		t.Fatalf("missing preview htmx action: %s", body)
 	}
+	if !strings.Contains(body, "<option value=\"boleto\">boleto</option>") {
+		t.Fatalf("missing boleto APM option: %s", body)
+	}
 }
 
 func TestPreviewEndpointRendersPayload(t *testing.T) {
@@ -59,6 +62,31 @@ func TestPreviewEndpointRendersPayload(t *testing.T) {
 	}
 	if !strings.Contains(body, "advanceResponseChecksum") {
 		t.Fatalf("missing checksum: %s", body)
+	}
+}
+
+func TestPreviewEndpointRendersBoletoPayload(t *testing.T) {
+	t.Parallel()
+
+	h := mustHandler(t)
+	form := url.Values{}
+	form.Set("profile", "local-demo")
+	form.Set("target", "local")
+	form.Set("status", "PENDING")
+	form.Set("apm", "boleto")
+
+	r := httptest.NewRequest(http.MethodPost, "/htmx/preview", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	h.Routes().ServeHTTP(w, r)
+
+	body := w.Body.String()
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if !strings.Contains(body, "apmgw_BOLETO") {
+		t.Fatalf("missing boleto payload marker: %s", body)
 	}
 }
 
