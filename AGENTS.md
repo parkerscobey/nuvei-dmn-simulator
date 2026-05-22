@@ -14,7 +14,7 @@ Hizal is your memory system. Every convention, architectural decision, and lesso
 
 **Every dev session starts and ends with Hizal.**
 
-Use the Hizal skills (install via ClawHub):
+Hizal skills are available at https://github.com/parkerscobey/hizal/tree/main/skills — install them before starting work.
 
 1. **Start** → `hizal-start` skill — begin your session, register focus
 2. **Search** → `hizal-search` skill — find existing context before building
