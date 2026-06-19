@@ -1,6 +1,8 @@
 package payment
 
 import (
+	"crypto/rand"
+	"encoding/hex"
 	"errors"
 	"fmt"
 	"net/url"
@@ -40,6 +42,11 @@ const (
 	FieldReason                  = "Reason"
 	FieldReasonCode              = "ReasonCode"
 	FieldErrCode                 = "ErrCode"
+	FieldNameOnCard              = "nameOnCard"
+	FieldCardNumber              = "cardNumber"
+	FieldExpMonth                = "expMonth"
+	FieldExpYear                 = "expYear"
+	FieldCardCompany             = "cardCompany"
 )
 
 var requiredKeys = []string{
@@ -103,6 +110,11 @@ type Options struct {
 	Reason              string
 	ReasonCode          string
 	ErrCode             string
+	NameOnCard          string
+	CardNumber          string
+	ExpMonth            string
+	ExpYear             string
+	CardCompany         string
 	Now                 func() time.Time
 }
 
@@ -188,6 +200,11 @@ func Build(opts Options) (Payload, error) {
 	setOptional(fields, FieldReason, opts.Reason)
 	setOptional(fields, FieldReasonCode, opts.ReasonCode)
 	setOptional(fields, FieldErrCode, opts.ErrCode)
+	setOptional(fields, FieldNameOnCard, opts.NameOnCard)
+	setOptional(fields, FieldCardNumber, opts.CardNumber)
+	setOptional(fields, FieldExpMonth, opts.ExpMonth)
+	setOptional(fields, FieldExpYear, opts.ExpYear)
+	setOptional(fields, FieldCardCompany, opts.CardCompany)
 
 	fields[FieldAdvanceResponseChecksum] = checksum.PaymentAdvanceResponseChecksum(checksum.PaymentFields{
 		TotalAmount:       fields[FieldTotalAmount],
@@ -253,13 +270,13 @@ func RecomputeAdvanceResponseChecksum(payload Payload, merchantSecretKey string)
 	}
 
 	next.Fields[FieldAdvanceResponseChecksum] = checksum.PaymentAdvanceResponseChecksum(checksum.PaymentFields{
+		MerchantSecretKey: merchantSecretKey,
 		TotalAmount:       next.Fields[FieldTotalAmount],
 		Currency:          next.Fields[FieldCurrency],
 		ResponseTimeStamp: next.Fields[FieldResponseTimeStamp],
 		PPPTransactionID:  next.Fields[FieldPPPTransactionID],
 		Status:            next.Fields[FieldStatus],
 		ProductID:         next.Fields[FieldProductID],
-		MerchantSecretKey: merchantSecretKey,
 	})
 
 	if err := next.Validate(); err != nil {
@@ -291,7 +308,16 @@ func FormatResponseTimeStamp(t time.Time) string {
 
 func generatedID(prefix, seed string) string {
 	compactSeed := strings.NewReplacer("-", "", ".", "", ":", "").Replace(seed)
-	return prefix + "-" + compactSeed
+	return prefix + "-" + compactSeed + "-" + randomSuffix()
+}
+
+func randomSuffix() string {
+	var b [4]byte
+	if _, err := rand.Read(b[:]); err == nil {
+		return hex.EncodeToString(b[:])
+	}
+
+	return fmt.Sprintf("%08x", uint32(time.Now().UTC().UnixNano()))
 }
 
 func setOptional(fields map[string]string, key, value string) {

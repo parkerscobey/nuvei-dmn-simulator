@@ -1,6 +1,7 @@
 package payment
 
 import (
+	"encoding/hex"
 	"net/url"
 	"strings"
 	"testing"
@@ -97,8 +98,8 @@ func TestBuildGeneratesMissingIDsAndTimestamp(t *testing.T) {
 		FieldClientUniqueID:      "uniq-20260520181000",
 		FieldUserPaymentOptionID: "upo-20260520181000",
 	}
-	for key, want := range expected {
-		assertField(t, payload, key, want)
+	for key, wantPrefix := range expected {
+		assertGeneratedID(t, payload, key, wantPrefix)
 	}
 }
 
@@ -123,6 +124,22 @@ func assertField(t *testing.T, payload Payload, key, want string) {
 	t.Helper()
 	if got := payload.Fields[key]; got != want {
 		t.Fatalf("field %q = %q, want %q", key, got, want)
+	}
+}
+
+func assertGeneratedID(t *testing.T, payload Payload, key, wantPrefix string) {
+	t.Helper()
+	got := payload.Fields[key]
+	prefix := wantPrefix + "-"
+	if !strings.HasPrefix(got, prefix) {
+		t.Fatalf("field %q = %q, want prefix %q", key, got, prefix)
+	}
+	suffix := strings.TrimPrefix(got, prefix)
+	if len(suffix) != 8 {
+		t.Fatalf("field %q suffix = %q, want 8 hex characters", key, suffix)
+	}
+	if _, err := hex.DecodeString(suffix); err != nil {
+		t.Fatalf("field %q suffix = %q, want hex: %v", key, suffix, err)
 	}
 }
 

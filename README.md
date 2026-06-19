@@ -27,7 +27,7 @@ Teams integrating Nuvei DMNs often need deterministic webhook testing without wa
 - Pix payment DMN preview with signed payload generation.
 - Pix payment DMN send flow with target safety checks.
 - Boleto payment DMN preview/send flows with the same safety checks.
-- Boleto payment DMN defaults in the shared payment builder package.
+- Card payment DMN preview/send flows with sanitized masked card metadata.
 - Strict correlation mode via `--require-correlation-fields`.
 - Raw URL-encoded payload import with safe override + checksum recompute.
 - Local web UI with HTMX actions for verify, preview, and send.
@@ -56,6 +56,8 @@ nuvei-dmn-simulator preview payment pix --profile local-demo --status APPROVED -
 nuvei-dmn-simulator send payment pix --profile local-demo --status APPROVED --target local
 nuvei-dmn-simulator preview payment boleto --profile local-demo --status PENDING --target local
 nuvei-dmn-simulator send payment boleto --profile local-demo --status APPROVED --target local
+nuvei-dmn-simulator preview payment card --profile local-demo --status APPROVED --target local
+nuvei-dmn-simulator send payment card --profile local-demo --status APPROVED --target local
 nuvei-dmn-simulator preview payment from-raw --profile local-demo --file payload.txt --status APPROVED --target local
 nuvei-dmn-simulator send payment from-raw --profile local-demo --file payload.txt --status DECLINED --target local
 ```
@@ -110,8 +112,6 @@ go run ./cmd/nuvei-dmn-simulator preview payment pix \
   --status APPROVED \
   --total-amount 42.10 \
   --currency BRL \
-  --client-request-id req-123 \
-  --client-unique-id uniq-123 \
   --user-payment-option-id upo-123
 ```
 
@@ -166,17 +166,27 @@ Behavior:
 
 If you need to preserve merchant identifiers from the file, pass `--keep-raw-merchant-fields`.
 
-## APM-specific fields
+## Payment Method Defaults
 
-APM default builders currently support Pix and Boleto. Both use shared base payment DMN fields and apply APM defaults for:
+Default builders currently support Pix, Boleto, and card payments. All use shared base payment DMN fields and apply payment-method defaults for:
 
-- `payment_method` (Pix: `apmgw_PIX`, Boleto: `apmgw_BOLETO`)
+- `payment_method` (Pix: `apmgw_PIX`, Boleto: `apmgw_BOLETO`, card: `cc_card`)
 - `transactionType` (`Sale`)
 - `type` (`DEPOSIT`)
-- `currency` (`BRL`)
+- `currency` (Pix/Boleto: `BRL`, card: `USD`)
 - `totalAmount` (`30.00`)
 
-For `DECLINED` status, both APM defaults set:
+Card defaults include sanitized, masked card metadata from Nuvei's payment DMN field set:
+
+- `nameOnCard=Test Cardholder`
+- `cardNumber=400002******0000`
+- `expMonth=12`
+- `expYear=2030`
+- `cardCompany=Visa`
+
+Do not use real PANs or customer cardholder data with this simulator.
+
+For `DECLINED` status, payment-method defaults set:
 
 - `Reason=Rejected by simulator.`
 - `ReasonCode=9999`
@@ -186,6 +196,7 @@ Fixture payloads for raw import tests are provided at:
 
 - `internal/nuvei/dmn/payment/apm/testdata/pix_payload.txt`
 - `internal/nuvei/dmn/payment/apm/testdata/boleto_payload.txt`
+- `internal/nuvei/dmn/payment/apm/testdata/card_payload.txt`
 
 ## Web UI
 
@@ -207,7 +218,7 @@ Defaults: binds to `127.0.0.1:8080`. Override with `--host` and `--port` if need
 The web UI uses the same core logic as CLI send/preview:
 
 - Merchant profile and target resolution from config.
-- Pix and Boleto payload building and checksum generation.
+- Pix, Boleto, and card payload building and checksum generation.
 - Target safety classification and allow/untrusted controls.
 - Nuvei `/getSessionToken` verification before send.
 - Form-encoded DMN sending with response status/body display.

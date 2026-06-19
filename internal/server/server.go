@@ -87,7 +87,7 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 	data := PageData{
 		MerchantProfiles: sortedMerchantProfiles(cfg),
 		Targets:          sortedTargets(cfg),
-		APMs:             []string{"pix", "boleto"},
+		APMs:             []string{"pix", "boleto", "card"},
 		DefaultStatus:    payment.StatusApproved,
 	}
 	if err := h.tmpl.ExecuteTemplate(w, "page", data); err != nil {
@@ -265,6 +265,8 @@ func (h *Handler) resolveInput(r *http.Request) (resolvedInput, ResultData, erro
 		buildAPM = apm.Pix
 	case "boleto":
 		buildAPM = apm.Boleto
+	case "card":
+		buildAPM = apm.Card
 	default:
 		return resolvedInput{}, ResultData{}, fmt.Errorf("unsupported APM %q", apmValue)
 	}

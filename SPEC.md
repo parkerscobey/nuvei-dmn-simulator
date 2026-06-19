@@ -176,7 +176,7 @@ Required generated fields for the first version:
 
 Include enough optional fields to resemble Nuvei examples without pretending every Nuvei field is mandatory.
 
-## Pix Defaults
+## Payment Method Defaults
 
 For Pix payment DMNs:
 
@@ -200,6 +200,29 @@ Declined defaults:
 - `ReasonCode=9999` unless provided
 - `ErrCode=9` unless provided
 
+For Boleto payment DMNs:
+
+- `payment_method=apmgw_BOLETO`
+- `transactionType=Sale`
+- `type=DEPOSIT`
+- `currency=BRL` by default
+- `totalAmount=30.00` by default
+- `productId=` by default
+- `message=<Status>`
+
+For card payment DMNs:
+
+- `payment_method=cc_card`
+- `transactionType=Sale`
+- `type=DEPOSIT`
+- `currency=USD` by default
+- `totalAmount=30.00` by default
+- `productId=` by default
+- `message=<Status>`
+- sanitized `nameOnCard`, masked `cardNumber`, `expMonth`, `expYear`, and `cardCompany` defaults
+
+The simulator must not accept or emit real PANs or customer cardholder data in its default card flow.
+
 ## CLI Commands
 
 Initial command set:
@@ -210,6 +233,10 @@ nuvei-dmn-simulator config verify <profile>
 nuvei-dmn-simulator config set-target <target-name>
 nuvei-dmn-simulator preview payment pix --profile <profile> --status APPROVED --target <target-name-or-url>
 nuvei-dmn-simulator send payment pix --profile <profile> --status APPROVED --target <target-name-or-url>
+nuvei-dmn-simulator preview payment boleto --profile <profile> --status PENDING --target <target-name-or-url>
+nuvei-dmn-simulator send payment boleto --profile <profile> --status APPROVED --target <target-name-or-url>
+nuvei-dmn-simulator preview payment card --profile <profile> --status APPROVED --target <target-name-or-url>
+nuvei-dmn-simulator send payment card --profile <profile> --status APPROVED --target <target-name-or-url>
 nuvei-dmn-simulator server --profile <profile> --target <target-name-or-url> --port 4545
 ```
 
@@ -234,8 +261,6 @@ Common non-secret flags:
 - `--status`
 - `--total-amount`
 - `--currency`
-- `--client-request-id`
-- `--client-unique-id`
 - `--user-payment-option-id`
 
 Secret values should not be accepted as normal flags in the primary UX. If environment-variable support is added for CI, it must be documented as automation-only.

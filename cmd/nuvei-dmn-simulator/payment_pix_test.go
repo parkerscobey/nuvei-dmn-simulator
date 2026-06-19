@@ -117,6 +117,52 @@ func TestPreviewPaymentBoletoPrintsTableAndRawPayload(t *testing.T) {
 	}
 }
 
+func TestPreviewPaymentCardPrintsTableAndRawPayload(t *testing.T) {
+	t.Parallel()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{
+			"local": {
+				URL:  "http://localhost:3000/nuvei_direct_merchant_notifications",
+				Kind: "local",
+			},
+		},
+	})
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"preview", "payment", "card",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--target", "local",
+		"--status", "APPROVED",
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "payment_method           cc_card") {
+		t.Fatalf("output missing card payment method: %s", output)
+	}
+	if !strings.Contains(output, "cardNumber") || !strings.Contains(output, "400002******0000") {
+		t.Fatalf("output missing masked card number: %s", output)
+	}
+}
+
 func TestSendPaymentPixPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
 	var (
 		requestMethod      string
@@ -257,6 +303,72 @@ func TestSendPaymentBoletoPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
 	}
 }
 
+func TestSendPaymentCardPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
+	var requestBody string
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll request body error = %v", err)
+		}
+		requestBody = string(body)
+
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("accepted by target"))
+	}))
+	defer targetServer.Close()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{},
+	})
+
+	originalVerify := verifyMerchantProfile
+	verifyMerchantProfile = func(ctx context.Context, profile credentials.Profile) (credentials.Verification, error) {
+		return credentials.Verification{Environment: profile.Environment}, nil
+	}
+	t.Cleanup(func() {
+		verifyMerchantProfile = originalVerify
+	})
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"send", "payment", "card",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--target", targetServer.URL,
+		"--status", "APPROVED",
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	if !strings.Contains(requestBody, "payment_method=cc_card") {
+		t.Fatalf("request body missing card payment method: %s", requestBody)
+	}
+	if !strings.Contains(requestBody, "cardNumber=400002%2A%2A%2A%2A%2A%2A0000") {
+		t.Fatalf("request body missing masked card number: %s", requestBody)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "HTTP status: 201") {
+		t.Fatalf("output missing status code: %s", output)
+	}
+	if !strings.Contains(output, "accepted by target") {
+		t.Fatalf("output missing response body: %s", output)
+	}
+}
+
 func TestSendPaymentPixBlocksUntrustedTargetByDefault(t *testing.T) {
 	t.Parallel()
 
@@ -366,8 +478,6 @@ func TestPreviewPaymentPixStrictModePassesWithRequiredFields(t *testing.T) {
 		"--status", "APPROVED",
 		"--total-amount", "42.10",
 		"--currency", "BRL",
-		"--client-request-id", "req-123",
-		"--client-unique-id", "uniq-123",
 		"--user-payment-option-id", "upo-123",
 	})
 

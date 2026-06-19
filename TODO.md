@@ -97,7 +97,7 @@
 - [x] Add Boleto payment DMN defaults.
 - [x] Add generic APM builder options.
 - [x] Add documentation for APM-specific fields.
-- [x] Add fixture payloads for Pix and Boleto.
+- [x] Add fixture payloads for Pix, Boleto, and card.
 - [x] Add tests for each APM default set.
 
 ## Phase 11: Open Source Polish
