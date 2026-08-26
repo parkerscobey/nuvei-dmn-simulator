@@ -39,6 +39,9 @@ func TestHomeRendersForm(t *testing.T) {
 	if !strings.Contains(body, "<option value=\"card\">card</option>") {
 		t.Fatalf("missing card APM option: %s", body)
 	}
+	if !strings.Contains(body, "<option value=\"local-payments-africa\">local-payments-africa</option>") {
+		t.Fatalf("missing local payments Africa APM option: %s", body)
+	}
 }
 
 func TestPreviewEndpointRendersPayload(t *testing.T) {
@@ -115,6 +118,31 @@ func TestPreviewEndpointRendersCardPayload(t *testing.T) {
 	}
 	if !strings.Contains(body, "cc_card") {
 		t.Fatalf("missing card payload marker: %s", body)
+	}
+}
+
+func TestPreviewEndpointRendersLocalPaymentsAfricaPayload(t *testing.T) {
+	t.Parallel()
+
+	h := mustHandler(t)
+	form := url.Values{}
+	form.Set("profile", "local-demo")
+	form.Set("target", "local")
+	form.Set("status", "PENDING")
+	form.Set("apm", "local-payments-africa")
+
+	r := httptest.NewRequest(http.MethodPost, "/htmx/preview", strings.NewReader(form.Encode()))
+	r.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+	w := httptest.NewRecorder()
+
+	h.Routes().ServeHTTP(w, r)
+
+	body := w.Body.String()
+	if w.Code != http.StatusOK {
+		t.Fatalf("status = %d, want 200", w.Code)
+	}
+	if !strings.Contains(body, "apmgw_Local_payments_Africa") {
+		t.Fatalf("missing local payments Africa payload marker: %s", body)
 	}
 }
 

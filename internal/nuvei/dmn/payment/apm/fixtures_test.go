@@ -17,6 +17,7 @@ func TestFixturePayloadsParse(t *testing.T) {
 		{name: "pix", file: "pix_payload.txt", wantPaymentMethod: PixPaymentMethod},
 		{name: "boleto", file: "boleto_payload.txt", wantPaymentMethod: BoletoPaymentMethod},
 		{name: "card", file: "card_payload.txt", wantPaymentMethod: CardPaymentMethod},
+		{name: "local payments africa", file: "local_payments_africa_payload.txt", wantPaymentMethod: LocalPaymentsAfricaPaymentMethod},
 	}
 
 	for _, tt := range tests {
