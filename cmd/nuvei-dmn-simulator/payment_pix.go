@@ -67,87 +67,40 @@ func newPreviewPaymentCommand() *cobra.Command {
 	cmd.AddCommand(newPreviewPaymentPixCommand())
 	cmd.AddCommand(newPreviewPaymentBoletoCommand())
 	cmd.AddCommand(newPreviewPaymentCardCommand())
+	cmd.AddCommand(newPreviewPaymentLocalPaymentsAfricaCommand())
 	cmd.AddCommand(newPreviewPaymentFromRawCommand())
 	return cmd
 }
 
 func newPreviewPaymentPixCommand() *cobra.Command {
-	flags := paymentPixFlags{}
-
-	cmd := &cobra.Command{
-		Use:   "pix",
-		Short: "Preview a signed Pix payment DMN payload",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateStrictMode(cmd, flags); err != nil {
-				return err
-			}
-
-			resolved, err := resolvePaymentPixInputs(flags)
-			if err != nil {
-				return err
-			}
-
-			classification := targetsafe.Classify(resolved.targetURL, resolved.trustedProfiles, nil)
-			printTargetSummary(cmd, classification)
-			if classification.Classification == targetsafe.ClassificationUntrusted {
-				fmt.Fprintln(cmd.OutOrStdout(), "Note: this target is untrusted and send is blocked by default unless you pass --allow-untrusted-target.")
-			}
-
-			printPayloadPreview(cmd, resolved.payload)
-			return nil
-		},
-	}
-
-	bindPaymentPixFlags(cmd, &flags, false)
-	return cmd
+	return newPreviewPaymentAPMCommand("pix", "Preview a signed Pix payment DMN payload", resolvePaymentPixInputs)
 }
 
 func newPreviewPaymentBoletoCommand() *cobra.Command {
-	flags := paymentPixFlags{}
-
-	cmd := &cobra.Command{
-		Use:   "boleto",
-		Short: "Preview a signed Boleto payment DMN payload",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateStrictMode(cmd, flags); err != nil {
-				return err
-			}
-
-			resolved, err := resolvePaymentBoletoInputs(flags)
-			if err != nil {
-				return err
-			}
-
-			classification := targetsafe.Classify(resolved.targetURL, resolved.trustedProfiles, nil)
-			printTargetSummary(cmd, classification)
-			if classification.Classification == targetsafe.ClassificationUntrusted {
-				fmt.Fprintln(cmd.OutOrStdout(), "Note: this target is untrusted and send is blocked by default unless you pass --allow-untrusted-target.")
-			}
-
-			printPayloadPreview(cmd, resolved.payload)
-			return nil
-		},
-	}
-
-	bindPaymentPixFlags(cmd, &flags, false)
-	return cmd
+	return newPreviewPaymentAPMCommand("boleto", "Preview a signed Boleto payment DMN payload", resolvePaymentBoletoInputs)
 }
 
 func newPreviewPaymentCardCommand() *cobra.Command {
+	return newPreviewPaymentAPMCommand("card", "Preview a signed card payment DMN payload", resolvePaymentCardInputs)
+}
+
+func newPreviewPaymentLocalPaymentsAfricaCommand() *cobra.Command {
+	return newPreviewPaymentAPMCommand("local-payments-africa", "Preview a signed Local Payments Africa payment DMN payload", resolvePaymentLocalPaymentsAfricaInputs)
+}
+
+func newPreviewPaymentAPMCommand(use, short string, resolve func(paymentPixFlags) (resolvedPaymentPixInputs, error)) *cobra.Command {
 	flags := paymentPixFlags{}
 
 	cmd := &cobra.Command{
-		Use:   "card",
-		Short: "Preview a signed card payment DMN payload",
+		Use:   use,
+		Short: short,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateStrictMode(cmd, flags); err != nil {
 				return err
 			}
 
-			resolved, err := resolvePaymentCardInputs(flags)
+			resolved, err := resolve(flags)
 			if err != nil {
 				return err
 			}
@@ -185,6 +138,7 @@ func newSendPaymentCommand() *cobra.Command {
 	cmd.AddCommand(newSendPaymentPixCommand())
 	cmd.AddCommand(newSendPaymentBoletoCommand())
 	cmd.AddCommand(newSendPaymentCardCommand())
+	cmd.AddCommand(newSendPaymentLocalPaymentsAfricaCommand())
 	cmd.AddCommand(newSendPaymentFromRawCommand())
 	return cmd
 }
@@ -263,116 +217,34 @@ func newSendPaymentFromRawCommand() *cobra.Command {
 }
 
 func newSendPaymentPixCommand() *cobra.Command {
-	flags := paymentPixFlags{}
-
-	cmd := &cobra.Command{
-		Use:   "pix",
-		Short: "Send a signed Pix payment DMN payload",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateStrictMode(cmd, flags); err != nil {
-				return err
-			}
-
-			resolved, err := resolvePaymentPixInputs(flags)
-			if err != nil {
-				return err
-			}
-
-			checkOpts := targetsafe.CheckOptions{
-				TrustedProfiles: resolved.trustedProfiles,
-				AllowUntrusted:  flags.allowUntrustedTarget,
-				Confirmer:       targetsafe.NewConsoleConfirmer(),
-			}
-			classification, err := targetsafe.Check(resolved.targetURL, checkOpts)
-			if err != nil {
-				return safetyError(classification, err)
-			}
-			printTargetSummary(cmd, classification)
-
-			_, err = verifyMerchantProfile(cmd.Context(), toCredentialProfile(resolved.merchantProfile))
-			if err != nil {
-				return err
-			}
-
-			result, err := sendDMNPayload(cmd.Context(), resolved.targetURL, resolved.payload.Encode())
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintf(cmd.OutOrStdout(), "HTTP status: %d\n", result.StatusCode)
-			fmt.Fprintln(cmd.OutOrStdout(), "Response body:")
-			fmt.Fprintln(cmd.OutOrStdout(), result.Body)
-			return nil
-		},
-	}
-
-	bindPaymentPixFlags(cmd, &flags, true)
-	return cmd
+	return newSendPaymentAPMCommand("pix", "Send a signed Pix payment DMN payload", resolvePaymentPixInputs)
 }
 
 func newSendPaymentBoletoCommand() *cobra.Command {
-	flags := paymentPixFlags{}
-
-	cmd := &cobra.Command{
-		Use:   "boleto",
-		Short: "Send a signed Boleto payment DMN payload",
-		Args:  cobra.NoArgs,
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := validateStrictMode(cmd, flags); err != nil {
-				return err
-			}
-
-			resolved, err := resolvePaymentBoletoInputs(flags)
-			if err != nil {
-				return err
-			}
-
-			checkOpts := targetsafe.CheckOptions{
-				TrustedProfiles: resolved.trustedProfiles,
-				AllowUntrusted:  flags.allowUntrustedTarget,
-				Confirmer:       targetsafe.NewConsoleConfirmer(),
-			}
-			classification, err := targetsafe.Check(resolved.targetURL, checkOpts)
-			if err != nil {
-				return safetyError(classification, err)
-			}
-			printTargetSummary(cmd, classification)
-
-			_, err = verifyMerchantProfile(cmd.Context(), toCredentialProfile(resolved.merchantProfile))
-			if err != nil {
-				return err
-			}
-
-			result, err := sendDMNPayload(cmd.Context(), resolved.targetURL, resolved.payload.Encode())
-			if err != nil {
-				return err
-			}
-
-			fmt.Fprintf(cmd.OutOrStdout(), "HTTP status: %d\n", result.StatusCode)
-			fmt.Fprintln(cmd.OutOrStdout(), "Response body:")
-			fmt.Fprintln(cmd.OutOrStdout(), result.Body)
-			return nil
-		},
-	}
-
-	bindPaymentPixFlags(cmd, &flags, true)
-	return cmd
+	return newSendPaymentAPMCommand("boleto", "Send a signed Boleto payment DMN payload", resolvePaymentBoletoInputs)
 }
 
 func newSendPaymentCardCommand() *cobra.Command {
+	return newSendPaymentAPMCommand("card", "Send a signed card payment DMN payload", resolvePaymentCardInputs)
+}
+
+func newSendPaymentLocalPaymentsAfricaCommand() *cobra.Command {
+	return newSendPaymentAPMCommand("local-payments-africa", "Send a signed Local Payments Africa payment DMN payload", resolvePaymentLocalPaymentsAfricaInputs)
+}
+
+func newSendPaymentAPMCommand(use, short string, resolve func(paymentPixFlags) (resolvedPaymentPixInputs, error)) *cobra.Command {
 	flags := paymentPixFlags{}
 
 	cmd := &cobra.Command{
-		Use:   "card",
-		Short: "Send a signed card payment DMN payload",
+		Use:   use,
+		Short: short,
 		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := validateStrictMode(cmd, flags); err != nil {
 				return err
 			}
 
-			resolved, err := resolvePaymentCardInputs(flags)
+			resolved, err := resolve(flags)
 			if err != nil {
 				return err
 			}
@@ -474,6 +346,10 @@ func resolvePaymentBoletoInputs(flags paymentPixFlags) (resolvedPaymentPixInputs
 
 func resolvePaymentCardInputs(flags paymentPixFlags) (resolvedPaymentPixInputs, error) {
 	return resolvePaymentAPMInputs(flags, apm.Card)
+}
+
+func resolvePaymentLocalPaymentsAfricaInputs(flags paymentPixFlags) (resolvedPaymentPixInputs, error) {
+	return resolvePaymentAPMInputs(flags, apm.LocalPaymentsAfrica)
 }
 
 func resolvePaymentAPMInputs(flags paymentPixFlags, build func(payment.Options) (payment.Payload, error)) (resolvedPaymentPixInputs, error) {

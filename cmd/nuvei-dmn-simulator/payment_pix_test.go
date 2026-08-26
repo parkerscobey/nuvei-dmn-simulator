@@ -163,6 +163,55 @@ func TestPreviewPaymentCardPrintsTableAndRawPayload(t *testing.T) {
 	}
 }
 
+func TestPreviewPaymentLocalPaymentsAfricaPrintsTableAndRawPayload(t *testing.T) {
+	t.Parallel()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{
+			"local": {
+				URL:  "http://localhost:3000/nuvei_direct_merchant_notifications",
+				Kind: "local",
+			},
+		},
+	})
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"preview", "payment", "local-payments-africa",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--target", "local",
+		"--status", "PENDING",
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	output := stdout.String()
+	if !strings.Contains(output, "Payload fields:") {
+		t.Fatalf("output missing payload table header: %s", output)
+	}
+	if !strings.Contains(output, "Raw URL-encoded payload:") {
+		t.Fatalf("output missing raw payload header: %s", output)
+	}
+	if !strings.Contains(output, "payment_method           apmgw_Local_payments_Africa") {
+		t.Fatalf("output missing local payments Africa payment method: %s", output)
+	}
+}
+
 func TestSendPaymentPixPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
 	var (
 		requestMethod      string
@@ -359,6 +408,69 @@ func TestSendPaymentCardPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
 	}
 	if !strings.Contains(requestBody, "cardNumber=400002%2A%2A%2A%2A%2A%2A0000") {
 		t.Fatalf("request body missing masked card number: %s", requestBody)
+	}
+	output := stdout.String()
+	if !strings.Contains(output, "HTTP status: 201") {
+		t.Fatalf("output missing status code: %s", output)
+	}
+	if !strings.Contains(output, "accepted by target") {
+		t.Fatalf("output missing response body: %s", output)
+	}
+}
+
+func TestSendPaymentLocalPaymentsAfricaPostsToTargetAndPrintsStatusAndBody(t *testing.T) {
+	var requestBody string
+	targetServer := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		body, err := io.ReadAll(r.Body)
+		if err != nil {
+			t.Fatalf("ReadAll request body error = %v", err)
+		}
+		requestBody = string(body)
+
+		w.WriteHeader(http.StatusCreated)
+		_, _ = w.Write([]byte("accepted by target"))
+	}))
+	defer targetServer.Close()
+
+	configPath := writeTestConfig(t, appconfig.Config{
+		Merchants: map[string]appconfig.MerchantProfile{
+			"local-demo": {
+				Environment:       "test",
+				MerchantID:        "merchant-id-placeholder",
+				MerchantSiteID:    "merchant-site-id-placeholder",
+				MerchantSecretKey: "merchant-secret-key-placeholder",
+			},
+		},
+		Targets: map[string]appconfig.TargetProfile{},
+	})
+
+	originalVerify := verifyMerchantProfile
+	verifyMerchantProfile = func(ctx context.Context, profile credentials.Profile) (credentials.Verification, error) {
+		return credentials.Verification{Environment: profile.Environment}, nil
+	}
+	t.Cleanup(func() {
+		verifyMerchantProfile = originalVerify
+	})
+
+	cmd := newRootCommand()
+	stdout := &bytes.Buffer{}
+	stderr := &bytes.Buffer{}
+	cmd.SetOut(stdout)
+	cmd.SetErr(stderr)
+	cmd.SetArgs([]string{
+		"send", "payment", "local-payments-africa",
+		"--config", configPath,
+		"--profile", "local-demo",
+		"--target", targetServer.URL,
+		"--status", "APPROVED",
+	})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("Execute error = %v", err)
+	}
+
+	if !strings.Contains(requestBody, "payment_method=apmgw_Local_payments_Africa") {
+		t.Fatalf("request body missing local payments Africa payment method: %s", requestBody)
 	}
 	output := stdout.String()
 	if !strings.Contains(output, "HTTP status: 201") {

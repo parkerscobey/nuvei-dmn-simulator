@@ -223,6 +223,16 @@ For card payment DMNs:
 
 The simulator must not accept or emit real PANs or customer cardholder data in its default card flow.
 
+For Local Payments Africa payment DMNs:
+
+- `payment_method=apmgw_Local_payments_Africa`
+- `transactionType=Sale`
+- `type=DEPOSIT`
+- `currency=USD` by default
+- `totalAmount=30.00` by default
+- `productId=` by default
+- `message=<Status>`
+
 ## CLI Commands
 
 Initial command set:
@@ -237,6 +247,8 @@ nuvei-dmn-simulator preview payment boleto --profile <profile> --status PENDING 
 nuvei-dmn-simulator send payment boleto --profile <profile> --status APPROVED --target <target-name-or-url>
 nuvei-dmn-simulator preview payment card --profile <profile> --status APPROVED --target <target-name-or-url>
 nuvei-dmn-simulator send payment card --profile <profile> --status APPROVED --target <target-name-or-url>
+nuvei-dmn-simulator preview payment local-payments-africa --profile <profile> --status PENDING --target <target-name-or-url>
+nuvei-dmn-simulator send payment local-payments-africa --profile <profile> --status APPROVED --target <target-name-or-url>
 nuvei-dmn-simulator server --profile <profile> --target <target-name-or-url> --port 4545
 ```
 
