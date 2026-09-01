@@ -47,6 +47,22 @@ const (
 	FieldExpMonth                = "expMonth"
 	FieldExpYear                 = "expYear"
 	FieldCardCompany             = "cardCompany"
+
+	FieldCustomField1  = "customField1"
+	FieldCustomField2  = "customField2"
+	FieldCustomField3  = "customField3"
+	FieldCustomField4  = "customField4"
+	FieldCustomField5  = "customField5"
+	FieldCustomField6  = "customField6"
+	FieldCustomField7  = "customField7"
+	FieldCustomField8  = "customField8"
+	FieldCustomField9  = "customField9"
+	FieldCustomField10 = "customField10"
+	FieldCustomField11 = "customField11"
+	FieldCustomField12 = "customField12"
+	FieldCustomField13 = "customField13"
+	FieldCustomField14 = "customField14"
+	FieldCustomField15 = "customField15"
 )
 
 var requiredKeys = []string{
@@ -115,6 +131,21 @@ type Options struct {
 	ExpMonth            string
 	ExpYear             string
 	CardCompany         string
+	CustomField1        string
+	CustomField2        string
+	CustomField3        string
+	CustomField4        string
+	CustomField5        string
+	CustomField6        string
+	CustomField7        string
+	CustomField8        string
+	CustomField9        string
+	CustomField10       string
+	CustomField11       string
+	CustomField12       string
+	CustomField13       string
+	CustomField14       string
+	CustomField15       string
 	Now                 func() time.Time
 }
 
@@ -205,6 +236,22 @@ func Build(opts Options) (Payload, error) {
 	setOptional(fields, FieldExpMonth, opts.ExpMonth)
 	setOptional(fields, FieldExpYear, opts.ExpYear)
 	setOptional(fields, FieldCardCompany, opts.CardCompany)
+
+	setOptional(fields, FieldCustomField1, opts.CustomField1)
+	setOptional(fields, FieldCustomField2, opts.CustomField2)
+	setOptional(fields, FieldCustomField3, opts.CustomField3)
+	setOptional(fields, FieldCustomField4, opts.CustomField4)
+	setOptional(fields, FieldCustomField5, opts.CustomField5)
+	setOptional(fields, FieldCustomField6, opts.CustomField6)
+	setOptional(fields, FieldCustomField7, opts.CustomField7)
+	setOptional(fields, FieldCustomField8, opts.CustomField8)
+	setOptional(fields, FieldCustomField9, opts.CustomField9)
+	setOptional(fields, FieldCustomField10, opts.CustomField10)
+	setOptional(fields, FieldCustomField11, opts.CustomField11)
+	setOptional(fields, FieldCustomField12, opts.CustomField12)
+	setOptional(fields, FieldCustomField13, opts.CustomField13)
+	setOptional(fields, FieldCustomField14, opts.CustomField14)
+	setOptional(fields, FieldCustomField15, opts.CustomField15)
 
 	fields[FieldAdvanceResponseChecksum] = checksum.PaymentAdvanceResponseChecksum(checksum.PaymentFields{
 		TotalAmount:       fields[FieldTotalAmount],

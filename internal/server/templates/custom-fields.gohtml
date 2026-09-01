@@ -1,0 +1,30 @@
+{{define "custom-fields"}}
+<div id="custom-fields">
+  {{range $i, $field := .CustomFields}}
+  <div class="custom-field-row">
+    <input type="text" name="custom_field_key_{{$i}}" value="{{$field.Key}}" placeholder="customField1" required>
+    <input type="text" name="custom_field_value_{{$i}}" value="{{$field.Value}}" placeholder="value">
+    <button type="button"
+      hx-post="/htmx/custom-fields/remove"
+      hx-include="closest .custom-field-row"
+      hx-target="#custom-fields"
+      hx-swap="outerHTML"
+      {{if eq (len $.CustomFields) 1}}disabled{{end}}>
+      Remove
+    </button>
+  </div>
+  {{end}}
+  {{if lt (len .CustomFields) 15}}
+  <button type="button"
+    class="add-custom-field"
+    hx-post="/htmx/custom-fields/add"
+    hx-target="#custom-fields"
+    hx-swap="outerHTML"
+    {{if eq (len .CustomFields) 0}}hx-trigger="click"{{end}}>
+    + Add custom field
+  </button>
+  {{else}}
+  <p class="helper-text">Maximum of 15 custom fields reached.</p>
+  {{end}}
+</div>
+{{end}}
