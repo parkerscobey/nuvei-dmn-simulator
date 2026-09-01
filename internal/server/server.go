@@ -31,11 +31,17 @@ type Handler struct {
 	tmpl       *template.Template
 }
 
+type CustomField struct {
+	Key   string
+	Value string
+}
+
 type PageData struct {
 	MerchantProfiles []string
 	Targets          []string
 	APMs             []string
 	DefaultStatus    string
+	CustomFields     []CustomField
 }
 
 type ResultData struct {
@@ -62,7 +68,7 @@ func NewHandler(configPath string, verifyFn VerifyFunc, sendFn SendFunc) (*Handl
 	if strings.TrimSpace(configPath) == "" {
 		return nil, fmt.Errorf("config path is required")
 	}
-	tmpl, err := template.ParseFS(templateFS, "templates/page.gohtml", "templates/result.gohtml")
+	tmpl, err := template.ParseFS(templateFS, "templates/page.gohtml", "templates/result.gohtml", "templates/custom-fields.gohtml")
 	if err != nil {
 		return nil, fmt.Errorf("parse templates: %w", err)
 	}
@@ -75,6 +81,9 @@ func (h *Handler) Routes() http.Handler {
 	mux.HandleFunc("POST /htmx/preview", h.handlePreview)
 	mux.HandleFunc("POST /htmx/send", h.handleSend)
 	mux.HandleFunc("POST /htmx/verify", h.handleVerify)
+	mux.HandleFunc("GET /htmx/custom-fields", h.handleCustomFields)
+	mux.HandleFunc("POST /htmx/custom-fields/add", h.handleAddCustomField)
+	mux.HandleFunc("POST /htmx/custom-fields/remove", h.handleRemoveCustomField)
 	return mux
 }
 
@@ -89,8 +98,66 @@ func (h *Handler) handleHome(w http.ResponseWriter, r *http.Request) {
 		Targets:          sortedTargets(cfg),
 		APMs:             []string{"pix", "boleto", "card", "local-payments-africa"},
 		DefaultStatus:    payment.StatusApproved,
+		CustomFields:     []CustomField{},
 	}
 	if err := h.tmpl.ExecuteTemplate(w, "page", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) handleCustomFields(w http.ResponseWriter, r *http.Request) {
+	customFields := parseCustomFields(r)
+	data := PageData{
+		CustomFields: customFields,
+	}
+	if err := h.tmpl.ExecuteTemplate(w, "custom-fields", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) handleAddCustomField(w http.ResponseWriter, r *http.Request) {
+	customFields := parseCustomFields(r)
+	if len(customFields) < 15 {
+		customFields = append(customFields, CustomField{Key: fmt.Sprintf("customField%d", len(customFields)+1), Value: ""})
+	}
+	data := PageData{
+		CustomFields: customFields,
+	}
+	if err := h.tmpl.ExecuteTemplate(w, "custom-fields", data); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+func (h *Handler) handleRemoveCustomField(w http.ResponseWriter, r *http.Request) {
+	if err := r.ParseForm(); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	customFields := parseCustomFields(r)
+	// Find the key to remove from the form values (the row being removed)
+	var keyToRemove string
+	for i := 0; i < 15; i++ {
+		key := strings.TrimSpace(r.FormValue(fmt.Sprintf("custom_field_key_%d", i)))
+		if key != "" {
+			keyToRemove = key
+			break
+		}
+	}
+	// Remove the field with matching key
+	filtered := make([]CustomField, 0, len(customFields))
+	for _, cf := range customFields {
+		if cf.Key != keyToRemove {
+			filtered = append(filtered, cf)
+		}
+	}
+	// Re-index keys to be sequential (customField1, customField2, ...)
+	for i := range filtered {
+		filtered[i].Key = fmt.Sprintf("customField%d", i+1)
+	}
+	data := PageData{
+		CustomFields: filtered,
+	}
+	if err := h.tmpl.ExecuteTemplate(w, "custom-fields", data); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
@@ -292,6 +359,20 @@ func (h *Handler) resolveInput(r *http.Request) (resolvedInput, ResultData, erro
 		return resolvedInput{}, ResultData{}, err
 	}
 
+	// Add custom fields to the payload
+	customFields := parseCustomFields(r)
+	for _, cf := range customFields {
+		if strings.TrimSpace(cf.Key) != "" && strings.TrimSpace(cf.Value) != "" {
+			p.Fields[cf.Key] = cf.Value
+		}
+	}
+
+	// Recompute checksum since we added fields
+	p, err = payment.RecomputeAdvanceResponseChecksum(p, profile.MerchantSecretKey)
+	if err != nil {
+		return resolvedInput{}, ResultData{}, err
+	}
+
 	classification := targetsafe.Classify(targetURL, siminput.TrustedTargetProfiles(cfg), nil)
 	result := ResultData{
 		TargetHost:     classification.Host,
@@ -358,4 +439,19 @@ func safetyError(result targetsafe.Result, original error) error {
 		return original
 	}
 	return fmt.Errorf("target host %q is not allowed: %s", result.Host, result.Reason)
+}
+
+func parseCustomFields(r *http.Request) []CustomField {
+	if err := r.ParseForm(); err != nil {
+		return nil
+	}
+	var fields []CustomField
+	for i := 0; i < 15; i++ {
+		key := strings.TrimSpace(r.FormValue(fmt.Sprintf("custom_field_key_%d", i)))
+		value := strings.TrimSpace(r.FormValue(fmt.Sprintf("custom_field_value_%d", i)))
+		if key != "" || value != "" {
+			fields = append(fields, CustomField{Key: key, Value: value})
+		}
+	}
+	return fields
 }

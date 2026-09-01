@@ -18,6 +18,12 @@
     .actions { display: flex; flex-wrap: wrap; gap: 0.6rem; margin-top: 1rem; }
     button { padding: 0.5rem 0.9rem; cursor: pointer; }
     #result { margin-top: 1rem; }
+    .custom-field-row { display: flex; gap: 0.5rem; align-items: center; margin-bottom: 0.5rem; }
+    .custom-field-row input { flex: 1; }
+    .custom-field-row button { padding: 0.3rem 0.6rem; font-size: 0.85rem; }
+    .custom-field-row button[disabled] { opacity: 0.5; cursor: not-allowed; }
+    .section-title { margin-top: 1rem; margin-bottom: 0.5rem; font-weight: 600; }
+    .helper-text { font-size: 0.85rem; color: #555; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
@@ -69,6 +75,12 @@
       <div class="row"><label for="client_request_id">clientRequestId</label><input id="client_request_id" name="client_request_id"></div>
       <div class="row"><label for="reason">Reason</label><input id="reason" name="reason"></div>
       <div class="row"><label for="reason_code">ReasonCode</label><input id="reason_code" name="reason_code"></div>
+    </div>
+
+    <div class="section-title">Custom fields (max 15)</div>
+    <p class="helper-text">Nuvei supports customField1 through customField15 in DMN payloads.</p>
+    <div id="custom-fields-container" hx-get="/htmx/custom-fields" hx-trigger="load">
+      <!-- Custom fields will be loaded here -->
     </div>
 
     <div class="checks">

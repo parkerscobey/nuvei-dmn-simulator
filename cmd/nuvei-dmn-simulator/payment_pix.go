@@ -37,6 +37,21 @@ type paymentPixFlags struct {
 	reasonCode               string
 	allowUntrustedTarget     bool
 	requireCorrelationFields bool
+	customField1             string
+	customField2             string
+	customField3             string
+	customField4             string
+	customField5             string
+	customField6             string
+	customField7             string
+	customField8             string
+	customField9             string
+	customField10            string
+	customField11            string
+	customField12            string
+	customField13            string
+	customField14            string
+	customField15            string
 }
 
 var verifyMerchantProfile = func(ctx context.Context, profile credentials.Profile) (credentials.Verification, error) {
@@ -295,6 +310,21 @@ func bindPaymentPixFlags(cmd *cobra.Command, flags *paymentPixFlags, includeAllo
 	cmd.Flags().StringVar(&flags.clientRequestID, "client-request-id", "", "override clientRequestId")
 	cmd.Flags().StringVar(&flags.reason, "reason", "", "override Reason")
 	cmd.Flags().StringVar(&flags.reasonCode, "reason-code", "", "override ReasonCode")
+	cmd.Flags().StringVar(&flags.customField1, "custom-field-1", "", "override customField1")
+	cmd.Flags().StringVar(&flags.customField2, "custom-field-2", "", "override customField2")
+	cmd.Flags().StringVar(&flags.customField3, "custom-field-3", "", "override customField3")
+	cmd.Flags().StringVar(&flags.customField4, "custom-field-4", "", "override customField4")
+	cmd.Flags().StringVar(&flags.customField5, "custom-field-5", "", "override customField5")
+	cmd.Flags().StringVar(&flags.customField6, "custom-field-6", "", "override customField6")
+	cmd.Flags().StringVar(&flags.customField7, "custom-field-7", "", "override customField7")
+	cmd.Flags().StringVar(&flags.customField8, "custom-field-8", "", "override customField8")
+	cmd.Flags().StringVar(&flags.customField9, "custom-field-9", "", "override customField9")
+	cmd.Flags().StringVar(&flags.customField10, "custom-field-10", "", "override customField10")
+	cmd.Flags().StringVar(&flags.customField11, "custom-field-11", "", "override customField11")
+	cmd.Flags().StringVar(&flags.customField12, "custom-field-12", "", "override customField12")
+	cmd.Flags().StringVar(&flags.customField13, "custom-field-13", "", "override customField13")
+	cmd.Flags().StringVar(&flags.customField14, "custom-field-14", "", "override customField14")
+	cmd.Flags().StringVar(&flags.customField15, "custom-field-15", "", "override customField15")
 	cmd.Flags().BoolVar(&flags.requireCorrelationFields, "require-correlation-fields", false, "require explicit amount/currency/status and correlation IDs")
 	if includeAllowUntrusted {
 		cmd.Flags().BoolVar(&flags.allowUntrustedTarget, "allow-untrusted-target", false, "allow unknown public targets")
@@ -320,6 +350,21 @@ func bindPaymentFromRawFlags(cmd *cobra.Command, flags *paymentPixFlags, include
 	cmd.Flags().StringVar(&flags.clientRequestID, "client-request-id", "", "override clientRequestId")
 	cmd.Flags().StringVar(&flags.reason, "reason", "", "override Reason")
 	cmd.Flags().StringVar(&flags.reasonCode, "reason-code", "", "override ReasonCode")
+	cmd.Flags().StringVar(&flags.customField1, "custom-field-1", "", "override customField1")
+	cmd.Flags().StringVar(&flags.customField2, "custom-field-2", "", "override customField2")
+	cmd.Flags().StringVar(&flags.customField3, "custom-field-3", "", "override customField3")
+	cmd.Flags().StringVar(&flags.customField4, "custom-field-4", "", "override customField4")
+	cmd.Flags().StringVar(&flags.customField5, "custom-field-5", "", "override customField5")
+	cmd.Flags().StringVar(&flags.customField6, "custom-field-6", "", "override customField6")
+	cmd.Flags().StringVar(&flags.customField7, "custom-field-7", "", "override customField7")
+	cmd.Flags().StringVar(&flags.customField8, "custom-field-8", "", "override customField8")
+	cmd.Flags().StringVar(&flags.customField9, "custom-field-9", "", "override customField9")
+	cmd.Flags().StringVar(&flags.customField10, "custom-field-10", "", "override customField10")
+	cmd.Flags().StringVar(&flags.customField11, "custom-field-11", "", "override customField11")
+	cmd.Flags().StringVar(&flags.customField12, "custom-field-12", "", "override customField12")
+	cmd.Flags().StringVar(&flags.customField13, "custom-field-13", "", "override customField13")
+	cmd.Flags().StringVar(&flags.customField14, "custom-field-14", "", "override customField14")
+	cmd.Flags().StringVar(&flags.customField15, "custom-field-15", "", "override customField15")
 	if includeAllowUntrusted {
 		cmd.Flags().BoolVar(&flags.allowUntrustedTarget, "allow-untrusted-target", false, "allow unknown public targets")
 	}
@@ -390,6 +435,21 @@ func resolvePaymentAPMInputs(flags paymentPixFlags, build func(payment.Options) 
 		ClientRequestID:     flags.clientRequestID,
 		Reason:              flags.reason,
 		ReasonCode:          flags.reasonCode,
+		CustomField1:        flags.customField1,
+		CustomField2:        flags.customField2,
+		CustomField3:        flags.customField3,
+		CustomField4:        flags.customField4,
+		CustomField5:        flags.customField5,
+		CustomField6:        flags.customField6,
+		CustomField7:        flags.customField7,
+		CustomField8:        flags.customField8,
+		CustomField9:        flags.customField9,
+		CustomField10:       flags.customField10,
+		CustomField11:       flags.customField11,
+		CustomField12:       flags.customField12,
+		CustomField13:       flags.customField13,
+		CustomField14:       flags.customField14,
+		CustomField15:       flags.customField15,
 	})
 	if err != nil {
 		return resolvedPaymentPixInputs{}, err
@@ -460,6 +520,21 @@ func resolvePaymentFromRawInputs(flags paymentPixFlags) (resolvedPaymentPixInput
 	setOverride(payload.Fields, payment.FieldClientRequestID, flags.clientRequestID)
 	setOverride(payload.Fields, payment.FieldReason, flags.reason)
 	setOverride(payload.Fields, payment.FieldReasonCode, flags.reasonCode)
+	setOverride(payload.Fields, payment.FieldCustomField1, flags.customField1)
+	setOverride(payload.Fields, payment.FieldCustomField2, flags.customField2)
+	setOverride(payload.Fields, payment.FieldCustomField3, flags.customField3)
+	setOverride(payload.Fields, payment.FieldCustomField4, flags.customField4)
+	setOverride(payload.Fields, payment.FieldCustomField5, flags.customField5)
+	setOverride(payload.Fields, payment.FieldCustomField6, flags.customField6)
+	setOverride(payload.Fields, payment.FieldCustomField7, flags.customField7)
+	setOverride(payload.Fields, payment.FieldCustomField8, flags.customField8)
+	setOverride(payload.Fields, payment.FieldCustomField9, flags.customField9)
+	setOverride(payload.Fields, payment.FieldCustomField10, flags.customField10)
+	setOverride(payload.Fields, payment.FieldCustomField11, flags.customField11)
+	setOverride(payload.Fields, payment.FieldCustomField12, flags.customField12)
+	setOverride(payload.Fields, payment.FieldCustomField13, flags.customField13)
+	setOverride(payload.Fields, payment.FieldCustomField14, flags.customField14)
+	setOverride(payload.Fields, payment.FieldCustomField15, flags.customField15)
 
 	payload, err = payment.RecomputeAdvanceResponseChecksum(payload, merchantProfile.MerchantSecretKey)
 	if err != nil {
